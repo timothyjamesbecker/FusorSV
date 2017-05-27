@@ -50,6 +50,16 @@ parser.add_argument('-C', '--clean', action='store_true',help='keep all kfold ru
 parser.add_argument('-T', '--test_libs', action='store_true', help='test the installation libraries\t[False]')
 args = parser.parse_args()
 
+if args.test_libs: #library tester should load all imports here
+    import fusion_utils as fu
+    x1,x2 = [[0,100,0,[],0,0,{}]],[[51,151,0,[],0,0,{}]]
+    F = fu.LR_no_idx(x1,x2)
+    T = [49,151,50,50]
+    if all([T[i]==(F[i][0][1]-F[i][0][0]) for i in range(len(T))]):
+        print('fusion_utils.so and bindings are functional')
+    else:
+        print('error with library imports, check your installation')
+    quit(0)
 if args.in_dir is not None:
     in_dir = args.in_dir
     if not os.path.exists(in_dir):
@@ -124,11 +134,6 @@ if args.stage_exclude_list is not None:
     except Exception as E:
         print('error parsing comma seperated list, using defaults')
         print('defaults stage exclude list is: %s'%stage_exclude_list)
-
-if args.test_libs: #library tester should load all imports here
-    import fusion_utils as fu
-    x1,x2 = [[0,100,0,[],0,0,{}]],[[50,100,0,[],0,0,{}]]
-    print('testing libs: result is %s'%fu.LR_no_idx(x1,x2))
 
 def get_observations(in_dir): #will look for .tar.gz file or glob the uncompressed folder
     #this require refactoring out HTSeq for tar archive to gzip support
