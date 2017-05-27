@@ -56,7 +56,7 @@ if args.test_libs: #library tester should load all imports here
     F = fu.LR_no_idx(x1,x2)
     T = [49,151,50,50]
     if all([T[i]==(F[i][0][1]-F[i][0][0]) for i in range(len(T))]):
-        print('fusion_utils.so and bindings are functional')
+        print('fusion_utils.so and bindings are functional!')
     else:
         print('error with library imports, check your installation')
     quit(0)
