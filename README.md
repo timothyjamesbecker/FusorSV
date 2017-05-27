@@ -54,8 +54,8 @@ python fusion_utils.py build_ext --inplace
 
 ```bash
 FusorSV.py --test_libs
+fusion_utils.so and bindings are functional!
 ```
-
 ## Usage (omit the first line when using non-docker)
 
 ```bash
