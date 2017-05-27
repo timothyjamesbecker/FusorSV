@@ -6,7 +6,7 @@ Takes as input a callset or group of VCF calls made by several SV callers for on
 ![Alt text](images/fusorSV_overview_v3_crop.jpg?raw=true "SVE") <br>
 *illustration courtesy of Jane Cha <br>
 
-## Requirements (docker)
+## Requirements (docker avaible soon)
 docker toolbox (or engine) version 1.13.0+
 
 ```bash
