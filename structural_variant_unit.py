@@ -7,7 +7,7 @@ class SVU:
         #parse the less complex fields first
         self.valid_svtypes = {'SUB':0,'RPL':0,
                               'INS':1,'INS:MEI':1,'INS:ME:ALU':1,'INS:ME:L1':1,
-                              'DEL':2,'DEL:ME''DEL:ME:ALU':2,'DEL:ME:L1':2,
+                              'DEL':2,'DEL:ME':2,'DEL:ME:ALU':2,'DEL:ME:L1':2,
                               'DUP':3,'DUP:TANDEM':3,'ITX':3,
                               'CNV':4,'INV':5,'CTX':6,'TRA':6,'BND':7}
         self.ref_path = ref_path #can repair the ref consensus string
