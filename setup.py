@@ -4,8 +4,6 @@ from distutils.extension import Extension
 from distutils.version import StrictVersion
 from Cython.Build import cythonize
 
-
-
 def two_dot(version):
     v = version.split('.')
     return '.'.join(v[0:min(3,len(v))])

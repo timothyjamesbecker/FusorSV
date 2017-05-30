@@ -2,6 +2,39 @@ import re
 import numpy as np
 import fusion_utils as fu
 
+#raw VCF reader that provides similair VCF reading function as HTSeq
+#VCF_CHR=0,VCF_POS=1,VCF_ID=2,VCF_REF=3,VCF_ALT=4,VCF_QUAL=5,VCF_FILT=6,VCF_INFO=7,VCF_FORMAT=8,VCF_SAMPLE=9
+def VCF_Reader(vcf_path):
+    data,header,raw,i = [],[],[],0
+    with open(vcf_path,'r') as f:
+        for line in f:
+            if line.startswith('#'):
+                header += [line.split('\n')[0].split('\t')]
+            else:
+                raw += [line.split('\n')[0].split('\t')]
+                data += [VariantCall(raw[i])]
+                i += 1
+    return data
+
+class VariantCall: #:::TO DO::: can move all the methods no into this structure
+    def __init__(self,row):
+        r = row + ['' for i in range(10-len(row))]
+        self.chrom      = r[0]
+        self.pos        = int(r[1])
+        self.id         = r[2]
+        self.ref        = r[3]
+        self.alt        = r[4]
+        self.qual       = r[5]
+        self.filter     = r[6]
+        self.info       = r[7]
+        self.format     = r[8]
+        self.gt         = r[9]
+    def __enter__(self):
+        return self
+
+    def __exit__(self,type,value,traceback):
+        return 0
+                                                
 class SVU:
     def __init__(self,vc=None,offset_map=None,ref_path=None,bam_path=None,conf_split=None):
         #parse the less complex fields first
@@ -13,7 +46,7 @@ class SVU:
         self.ref_path = ref_path #can repair the ref consensus string
         self.bam_path = bam_path #can repair the alt consensus string
         self.parse_chrom(vc.chrom)      #string value, trim chrom or chr to chr1->1
-        self.pos    = vc.pos.pos        #uint here
+        self.pos    = vc.pos            #uint here
         self.id     = vc.id             #string
         self.repair_id()
         self.ref    = vc.ref            #string
@@ -259,4 +292,5 @@ class SVU:
         print('ref=\t%s'%self.ref)
         print('alt=\t%s'%self.alt)
         print('svtype=\t%s\tsvlen=\t%s'%(self.svtype,self.svlen))
+        
         

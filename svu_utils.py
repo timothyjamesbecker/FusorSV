@@ -6,16 +6,13 @@ import re
 import datetime
 #pip installed libs
 import numpy as np
-import HTSeq as ht  # :::TO DO::: refactor out this one
 #local libs
 import fusion_utils as fu
 import read_utils as ru
-from structural_variant_unit import SVU
-import crossmap as cs #do conditional or function import
-import mygene         #do conditional or functional import
+import structural_variant_unit
 
 def get_sv_types():
-    return SVU().get_sv_types()
+    return structural_variant_unit.SVU().get_sv_types()
 
 def pretty_ranges(B,units):
     s,size_map = [],{0:'',1:'K',2:'M',3:'G',4:'T',5:'P',6:'E'}
@@ -101,7 +98,7 @@ def genome_to_vcf(D,ref_seq,types,chroms,callers,out_path,sname,
     refname = ref_seq.keys()[0] #get the ref name
     C = {k:len(ref_seq[refname][k]) for k in ref_seq[refname]} #get the chrom names
     ctg = max([len(k) for k in C])
-    cs = sorted(C.keys(), key =lambda x: x.rjust(ctg)) #SORTING ISSUES::::::::::::::::::::::::::::::
+    CS = sorted(C.keys(), key =lambda x: x.rjust(ctg)) #SORTING ISSUES::::::::::::::::::::::::::::::
     if header_path is None: #default vcf_header is in the data directory of fusionSVU
         path = os.path.dirname(os.path.abspath(__file__))+'/data/header_template.vcf'
     else:
@@ -122,7 +119,7 @@ def genome_to_vcf(D,ref_seq,types,chroms,callers,out_path,sname,
             if header[i].startswith('##reference='):
                 header[i] += refname #name
         #construct a name length pair for each contig,,, '##contig=<ID=,len=,>'
-        for k in cs:
+        for k in CS:
             header += [''.join(['##contig=<ID=',k,',len=',str(C[k]),'>'])]
         s = ','.join([str(k)+':'+callers[k] for k in sorted(callers.keys())])
         header += ['##INFO=<ID=SVMETHOD,Number=.,Type=String,Description="'+s+'">']
@@ -338,7 +335,7 @@ def delly_vcf_reader(vcf_glob,out_vcf,reference,samples=['HG00513','HG00733','NA
                 header += [line.split('\n')[0].split('\t')]
     snames = header[-1][VCF_FORMAT+1:]                      
     #now sort and cluster calls for genotyping
-    data = coordinate_sort(data)
+    data = coordinate_sort_pos(data)
     return True
 
 #
@@ -387,7 +384,7 @@ def g1kP3_vcf_multi_sample_merge(vcf_glob,out_vcf,reference,overlap=0.5,
         raw += [data[i]]
     data = raw
     #now sort and cluster calls for genotyping
-    data = coordinate_sort(data)
+    data = coordinate_sort_pos(data)
     cluster = coordinate_cluster(data,overlap)
     flat_data = clusters_to_flattened_str(cluster,snames,reference)
     vcf = '\n'.join([''.join(h) for h in header])+'\n'
@@ -402,6 +399,7 @@ def g1kP3_vcf_multi_sample_merge(vcf_glob,out_vcf,reference,overlap=0.5,
 def fusorSV_liftover(vcf_path,ref_path,chain_path,
                      CHR=0,POS=1,ID=2,REF=3,ALT=4,QUAL=5,FILT=6,INFO=7,FORMAT=8,SAMPLE=9,
                      add_chr=True):
+    import crossmap as cs
     if add_chr: chrom = 'chr'
     else:       chrom = ''        
     I,header,data,err = {},[],[],[]
@@ -529,6 +527,7 @@ def fusorSV_multi_sample_merge_query(fusorSV_vcf_dir,sample_id_validation):
 
 #need the bedtools intersect output for refseq
 def fusorSV_bed_gene_converter(refseq_bed,gene_counts,REFSEQ_ID=3):
+    import mygene
     data,genes = [],{}
     with open(refseq_bed,'r') as f:
         for line in f:
@@ -827,7 +826,8 @@ def clusters_to_flattened_str(cluster,snames,reference,average=True,
         svmethod = idx_to_str(idx)
         row[VCF_POS] = str(pos)
         row[VCF_INFO] = cluster_info_update(row[VCF_INFO],svlen,end,svex,svmethod,targets,fusorSV_ids)
-        row[VCF_REF]  = reference[row[VCF_CHR]].seq[pos] #new average pos
+        #row[VCF_REF]  = reference[row[VCF_CHR]].seq[pos] #HTSeq version
+        row[VCF_REF]  = reference[row[VCF_CHR]][pos]
         row[VCF_SAMPLE] = cluster_to_samples(snames,f_ids)
         data += [row]
     data = sorted(data,key=lambda x: (x[VCF_CHR].zfill(seq_name_len),int(x[VCF_POS])))
@@ -891,6 +891,7 @@ def fusorSV_fix_merged_samples(vcf_in_path,vcf_out_path):
     return False
 
 def fusorSV_vcf_liftover(vcf_in_path,ref_path,chain_path):
+    import crossmap as cs
     mapTree,targetChromSizes, sourceChromSizes = cs.read_chain_file(chain_path)
     cs.crossmap_vcf_file(mapTree,vcf_in_path,chain_path,ref_path)
     return True
@@ -1045,7 +1046,7 @@ def write_tigra_ctg_map(M,tigra_tsv_path,t_id=38):
 def construct_svult(vcr,chroms,offset_map,s_id,flt=0,upper=int(500E3)):
     sx,vc_i,vx,k,j = {},{},[],[],0 #filtered container, and j is the originating row
     for vc in vcr: #iterate on the variant call record
-        vx += [SVU(vc,offset_map)]
+        vx += [structural_variant_unit.SVU(vc,offset_map)]
         if vx[-1].chrom in chroms and vx[-1].filter >= flt and vx[-1].svlen < upper:
             sx[tuple(vx[-1].svu[0])] = j
             #if len(vx[-1].svu)>1:
@@ -1079,7 +1080,7 @@ def print_svult(C):
 def vcf_glob_to_svultd(path_glob,chroms,offset_map,flt=0,flt_exclude=[]):        
     vcfs,S,V = glob.glob(path_glob),{},{}
     for vcf in vcfs:
-        vcr = ht.VCF_Reader(vcf)
+        vcr = structural_variant_unit.VCF_Reader(vcf) #uses 
         s_id = id_trim(vcf)
         if s_id in flt_exclude:
             S[s_id],V[s_id] = construct_svult(vcr,chroms,offset_map,s_id,-1)
@@ -1169,4 +1170,10 @@ def filter_regions2(C,R):
         if j>=m: j,i = m,i+1 #sticky indecies wait for eachother
     while len(C) > 0 and C[-1][0] > upper:  C.pop()    
     while len(R) > 0 and R[-1][0] > upper:  R.pop()
-    return [C[i] for i in sorted(set(range(len(C))).difference(set(D[1:])))]    
+    return [C[x] for x in sorted(set(range(len(C))).difference(set(D[1:])))]
+
+#HTSeq refactor testing
+#sample_path = '/Users/tbecker/Desktop/SANDISK/meta_caller_R4/HG00096/'
+#offset_map = ru.get_coordinate_offsets('human_g1k_v37_decoy_coordinates.json')
+#chroms = [str(i) for i in range(1,23)]+['X','Y','MT']
+#S,V = vcf_glob_to_svultd(path_glob=sample_path+'/*vcf',chroms=chroms,offset_map=offset_map,flt=0,flt_exclude=[])            

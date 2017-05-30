@@ -9,7 +9,6 @@ import glob
 import time
 import itertools as it
 import numpy as np
-import scipy.stats as stats
 #local libs
 import fusion_utils as fu
 
@@ -490,25 +489,19 @@ def group_brkpt_stats(X1,X2):
     x_n = len(X4)
     x_sm = sum(X4)
     if x_n>0:
-        x_mu = np.mean(X4)
+        x_mu,x_sd,x_sk,x_ks = fu.stats(X4)
         x_md = np.median(X4)
-        x_sd = np.std(X4)
-        x_sk = stats.skew(X4)
-        x_ks = stats.kurtosis(X4)
     return [x_n,x_sm,x_mu,x_md,x_sd,x_sk,x_ks]    
     
-
+#X is a list of int
 def brkpt_stats(X):
     X1 = X[~np.isnan(X)]
     x_n,x_sm,x_mu,x_md,x_sd,x_sk,x_ks = 0,0,0.0,0.0,0.0,0.0,0.0
     x_n = len(X1)
     x_sm = sum(X1)
     if x_n>0:
-        x_mu = np.mean(X1)
+        x_mu,x_sd,x_sk,x_ks = fu.stats(X1)
         x_md = np.median(X1)
-        x_sd = np.std(X1)
-        x_sk = stats.skew(X1)
-        x_ks = stats.kurtosis(X1)
     return [x_n,x_sm,x_mu,x_md,x_sd,x_sk,x_ks]
     
 #breakpoint differentials to the target

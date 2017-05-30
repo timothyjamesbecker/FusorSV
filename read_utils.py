@@ -4,7 +4,7 @@
 import os
 import json
 import numpy as np
-import HTSeq as ht
+import pysam
 import fusion_utils as fu 
 
 #takes in the multi-chrom fasta file and rads it by seq/chrom
@@ -12,76 +12,66 @@ import fusion_utils as fu
 #using the chrom_base='' seq_name.fa
 #write_fasta_by_chrom(path,path[0:path.rfind('/')],'')
 
+def get_reverse_complement(seq):
+    m = {'A':'T','a':'t','T':'A','t':'a','C':'G','c':'g','G':'C','g':'c','N':'N'}
+    return ''.join([m[k] for k in seq[::-1]])
+
 def read_fasta_substring(fasta_path,chrom,pos,end):
     ss = ''
-    for s in ht.FastaReader(fasta_path):
-        if s.name==chrom:
-            ss = s
-            return ss[pos:end] #short circuit
-    return ss
+    with pysam.FastaFile(fasta_path) as f:
+        ss = f.fetch(chrom)
+    return ss[pos:end]
     
 def read_fasta_chrom(fasta_path,chrom):
     ss = ''
-    for s in ht.FastaReader(fasta_path):
-        if s.name==chrom:
-            ss = s
-            return ss
+    with pysam.FastaFile(fasta_path) as f:
+        ss = f.fetch(chrom)
     return ss
 
-def read_fasta(fasta_path,dictionary=False,trimN=False):
-    ref = None
-    if dictionary:
-        ref = dict( (s.name, s) for s in ht.FastaReader(fasta_path))
-    else:
-        ss = []
-        for s in ht.FastaReader(fasta_path): ss+=[s]
-        ref = ss    
-    if trimN:
-        if dictionary:
-            for k in ref:
-                ref[k].seq = ref[k].seq.replace('N','')
-        else:
-            for i in range(0,len(ref)):
-                ref[i].seq = ref[k].seq.replace('N','')
-    return ref
-
-#read a genome mask file and convert to a region list of list object
-#take out each sequence name and then the sequence and project to bits
-#use the bit to integer ranges to calculate the integer ranges on the mask
-#add the optional offsets to each of these using the offset map
-#def read_fasta_mask(fasta_path,mask={'1':1,'0':0},offset_map=None):
-#    M = {}
-#    for s in ht.FastaReader(fasta_path):
-#        M[s.name] = fu.str2ir(s.seq)
-#    return M
+def read_fasta(fasta_path):
+    ss = {}
+    with pysam.FastaFile(fasta_path) as f:
+        names = f.references
+        for chrom in names:
+            ss[chrom] = f.fetch(chrom)
+    return ss
 
 def get_fasta_seq_names(fasta_path):
     ss = []
-    for s in ht.FastaReader(fasta_path): ss+=[s.name]
+    with pysam.FastaFile(fasta_path) as f:
+        ss = list(f.references)
     return ss
 
 def get_fasta_seq_lens(fasta_path):
     ss = []
-    for s in ht.FastaReader(fasta_path): ss+=[len(s)]
+    with pysam.FastaFile(fasta_path) as f:
+        ss = list(f.lengths)
     return ss
 
 def get_fasta_seq_names_lens(fasta_path):
     ss = {}
-    for s in ht.FastaReader(fasta_path): ss[s.name]=len(s)
-    return ss
-
-def write_fasta(seqs, fasta_path):
-    with open(fasta_path, 'w') as fasta:
-        for seq in seqs: seq.write_to_fasta_file(fasta)
-        return True
-
+    with pysam.FastaFile(fasta_path) as f:
+        names = f.references
+        lens  = f.lengths
+    for i in range(len(names)):
+        ss[names[i]]=lens[i]
+    return ss   
+    
+def write_fasta(seqs,fasta_path,index=True):
+    with open(fasta_path,'w') as fasta:
+        for k in seqs:
+            fasta.write('\n'.join(['>%s'%k]+[seqs[k][i:(i+80)] for i in range(0,len(seqs[k]),80)]+['\n']))
+    if index: pysam.faidx(fasta_path) #reindex
+    return True    
+    
 #ss is a HTSeq Sequence list?   
-def write_fasta_by_chrom(ss, chrom_fasta_dir, chrom_base=''):
+def write_fasta_by_chrom(seqs, chrom_fasta_dir, chrom_base=''):
     names = []
-    for s in ss:
-        name = chrom_fasta_dir+'/'+chrom_base+s.name+'.fa'
+    for k in seqs:
+        name = chrom_fasta_dir+'/'+chrom_base+k+'.fa'
         names += [name]
-        with open(name, 'w') as fasta: s.write_to_fasta_file(fasta)
+        with open(name, 'w') as fasta:
+            fasta.write('\n'.join(['>%s'%k]+[seqs[k][i:(i+80)] for i in range(0,len(seqs[k]),80)]+['\n']))
     return names
 
 def write_fasta_mask(M,json_path):
@@ -301,36 +291,5 @@ def write_ucsc_repeat_masker(tsv_path,json_path,offset_map,
 
 #M = read_fasta_mask('/home/tbecker/data/human_g1k_v37_decoy/human_g1k_v37_decoy_S15.fa.svmask.fasta')
 #write_fasta_mask(M,'/home/tbecker/software/fusionSVU/data/human_g1k_v37_decoy_svmask.json')
-
-#should look at the pip package khmer
-
-#for a given set of reference contigs (IE refrence), compute how alignable
-#a given read of length r would be at each starting position 
-#(from 0 to |contig|, noting that r gets clipped as we approch |contig|)
-#runtime is lengthly....
-#def mappability(fasta_path,r):
-#    ref = dict( (s.name, s) for s in ht.FastaReader(fasta_path))
-#    for k in ref:
-#        S = ref[k].seq  #call this a contig
-#        l = len(S)
-#        print('now processing contig of length %s'%(str(l)))
-#        M = np.zeros((l-r,),dtype='u1')  #map of unique substrings of ref[k] of length r
-#        for i,j in it.combinations(range(l-2),2):
-#            if hsh.md5(S[i:i+r-1])==hsh.md5(S[j:j+r-1]):
-#                M[i] += 1
-#                M[j] += 1   
-#        #for i in M: M[i] = 1.0-float(M[i]-1)/float(l-r) #normalization
-#    return M     
    
-        
-    
-    
-    
-    
-    
-    
-
-
-
-
-    
+   

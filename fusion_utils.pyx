@@ -5,6 +5,7 @@ import json
 import gzip
 import glob
 import itertools as it
+import math
 import numpy as np
 cimport numpy as np
 cimport cython
@@ -37,6 +38,65 @@ def write_gzip_freq(dict R, str refbase_directory):
         with gzip.GzipFile(json_path, 'w') as f:
             f.write(json.dumps({s:R[s]}))
 
+@cython.boundscheck(False)
+@cython.nonecheck(False)
+@cython.wraparound(False)
+def stats(double[::1] X):
+    cdef int i,m               
+    cdef double rm[4],srm[4]                  
+    m = len(X)
+    srm[:] = [0.0,0.0,0.0,0.0]
+    for i in range(m): srm[0] += X[i]
+    if srm[0] > 0.0:
+        srm[0] = srm[0]/m
+        for i in range(m):
+            rm[0]   = X[i]-srm[0] 
+            rm[1]   = rm[0]*rm[0]       
+            rm[2]   = rm[0]*rm[1]         
+            rm[3]   = rm[0]*rm[2]        
+            srm[1] += rm[1]         
+            srm[2] += rm[2]       
+            srm[3] += rm[3]      
+        if srm[1] <= 0.0: srm[3] = -3.0
+        else:
+            srm[2] = math.pow(<double>m,0.5)*srm[2]/math.pow(srm[1],1.5)
+            srm[3] = <double>m*srm[3]/srm[1]**2-3.0
+            srm[1] = math.pow(srm[1],0.5)
+    else: srm[3] = -3.0
+    return srm           
+
+@cython.boundscheck(False)
+@cython.nonecheck(False)
+@cython.wraparound(False)
+def skew(double[::1] X):
+    cdef double x
+    cdef double srm[4]
+    srm[:] = stats(X)
+    x = srm[2]
+    return x
+
+@cython.boundscheck(False)
+@cython.nonecheck(False)
+@cython.wraparound(False)
+def kurtosis(double[::1] X):
+    cdef double x
+    cdef double srm[4]
+    srm[:] = stats(X)
+    x = srm[3]
+    return x
+
+    def window_skew(self,f):
+        if f[self.__M2__] > 0.0:
+            return math.pow(f[self.__N__],0.5)*f[self.__M3__]/math.pow(f[self.__M2__],1.5)
+        else:
+            return 0.0
+            
+    def window_kur(self,f):
+        if f[self.__M2__] > 0.0:
+            return f[self.__N__]*f[self.__M4__]/f[self.__M2__]**2 - 3.0
+        else:
+            return -3.0
+    
 #each chrom is denoted with a >
 @cython.boundscheck(False)
 @cython.nonecheck(False)
