@@ -57,11 +57,11 @@ def stats(double[::1] X):
             srm[1] += rm[1]         
             srm[2] += rm[2]       
             srm[3] += rm[3]      
-        if srm[1] <= 0.0: srm[3] = -3.0
+        if srm[1] <= 0.0 or m<1: srm[3] = -3.0
         else:
             srm[2] = math.pow(<double>m,0.5)*srm[2]/math.pow(srm[1],1.5)
             srm[3] = <double>m*srm[3]/srm[1]**2-3.0
-            srm[1] = math.pow(srm[1],0.5)
+            srm[1] = math.pow(srm[1]/(<double>m-1.0),0.5)
     else: srm[3] = -3.0
     return srm           
 
