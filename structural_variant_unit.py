@@ -292,5 +292,3 @@ class SVU:
         print('ref=\t%s'%self.ref)
         print('alt=\t%s'%self.alt)
         print('svtype=\t%s\tsvlen=\t%s'%(self.svtype,self.svlen))
-        
-        
