@@ -43,7 +43,8 @@ def write_gzip_freq(dict R, str refbase_directory):
 @cython.wraparound(False)
 def stats(double[::1] X):
     cdef int i,m               
-    cdef double rm[4],srm[4]                  
+    cdef double rm[4]
+    cdef double srm[4]                  
     m = len(X)
     srm[:] = [0.0,0.0,0.0,0.0]
     for i in range(m): srm[0] += X[i]
@@ -84,18 +85,6 @@ def kurtosis(double[::1] X):
     srm[:] = stats(X)
     x = srm[3]
     return x
-
-    def window_skew(self,f):
-        if f[self.__M2__] > 0.0:
-            return math.pow(f[self.__N__],0.5)*f[self.__M3__]/math.pow(f[self.__M2__],1.5)
-        else:
-            return 0.0
-            
-    def window_kur(self,f):
-        if f[self.__M2__] > 0.0:
-            return f[self.__N__]*f[self.__M4__]/f[self.__M2__]**2 - 3.0
-        else:
-            return -3.0
     
 #each chrom is denoted with a >
 @cython.boundscheck(False)
