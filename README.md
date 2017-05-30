@@ -13,28 +13,28 @@ docker toolbox (or engine) version 1.13.0+
 docker pull timothyjamesbecker/fusorsv
 ```
 
-## Requirements/Options (non-docker)
+## Requirements (non-docker)
 python 2.7.10 <br> 
 cython 0.23.4 <br> 
 pysam 0.9.1 <br> 
-numpy 1.10.0 <br> 
-scipy 1.16.0    (will be factored out in the next release) <br> 
-HTSeq 0.6.0     (will be factored out in the next release) <br> 
-bx-python 0.5.0 (will be optional in the next release) <br> 
-mygene 3.0.0    (will be optional in the next release) <br> 
+numpy 1.10.0 <br>
+
+### Options (non-docker)
+bx-python 0.5.0 (optional for crossmap liftover) <br> 
+mygene 3.0.0    (optional for gene annotations) <br> 
 
 ### Building (automated pip will be available very soon)
 #### (1) If using pip: install the requirements:
 
 ```
 pip --upgrade pip
-pip install 'cython>=0.23.4,<0.25.3'
-pip install 'pysam>=0.9.0,<0.9.2'
-pip install 'numpy>=1.10.0,<1.11.0'
-pip install 'scipy>=1.16.0,<1.18.0'
-pip install 'HTSeq>=0.6.0,<0.7.0'
-pip install 'bx-python>=0.5.0,<0.7.3'
-pip install 'mygene>=3.0.0'
+pip install -Iv 'cython>=0.23.4,<0.25.3'
+pip install -Iv 'pysam>=0.9.0,<0.9.2'
+pip install -Iv 'numpy>=1.10.0,<1.11.0'
+
+(Optional)
+pip install -Iv 'bx-python>=0.5.0,<0.7.3'
+pip install -Iv 'mygene>=3.0.0'
 ```
 
 #### (2) Clone the git repo or download a release:
@@ -50,7 +50,7 @@ cd FusorSV
 python fusion_utils.py build_ext --inplace
 ```
 
-(4) Test the requirements and shared library:
+#### (4) Test the requirements and shared library:
 
 ```bash
 FusorSV.py --test_libs
