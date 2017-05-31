@@ -14,7 +14,7 @@ import fusor_utils as fusor
 
 des = """
 FusorSV - A Data Fusion Method for Multi Source (VCF4.0+) Structural Variation Analysis
-Timothy James Becker, PhD candidate, UCONN 05/25/2016-05/27/2017"""
+Timothy James Becker, PhD candidate, UCONN 05/25/2016-05/30/2017"""
 parser = argparse.ArgumentParser(description=des,formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument('-r', '--ref_path',type=str, help='reference fasta needed to write vcf or g1k output files\t[None]')
 des = """
@@ -535,4 +535,3 @@ if __name__ == '__main__':
         print('run %s in %s sec'%(n_k,round(n_stop-n_start,2)))
         print(''.join([':::' for i in range(40)]))
         
-    P = fusor.read_partitions_by_sample(partition_path,sname)

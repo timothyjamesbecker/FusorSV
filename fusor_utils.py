@@ -5,6 +5,7 @@ import math
 import socket
 import cPickle as pickle
 import gzip
+import json
 import glob
 import time
 import itertools as it
@@ -98,17 +99,6 @@ def assemble_model(L):
             alpha[t] = {b:a[t][b]}
             K[t]     = {b:k[t][b]}
     return J,D,E,alpha,len(L),K
-    
-#save the main variables or the pooled target search into J pickled
-def read_pickle_metric_search(pickle_path):
-    J = {}
-    with open(pickle_path+'metric_search.pickle', 'rb') as f:
-        start = time.time()
-        print('reading %s'%pickle_path+'metric_search.pickle')
-        J = pickle.load(f)
-        stop = time.time()
-        print('finished loading %s in %s sec'%(pickle_path+'metric_search.pickle',round(stop-start,2)))
-    return J
 
 #this is a table based export for visualization
 def export_distance_matrix(D,callers,types,bins,path,sim=True):
@@ -176,21 +166,72 @@ def export_caller_by_type_and_bin(E,alpha,callers,types,bins,path):
         f.write(s)
         return True
     return False
-       
+
+#helper functions for conversion on keys
+def json_to_B(B_j):
+    B = {}
+    for t in B_j:
+        B[int(t)] = B_j[t]
+    return B
+
+def json_to_alpha(alpha_j):
+    alpha = {}
+    for t_j in alpha_j:
+        t_i = int(t_j)
+        alpha[t_i] = {}
+        for b_j in alpha_j[t_j]:
+            b_i = int(b_j)
+            alpha[t_i][b_i] = alpha_j[t_j][b_j]
+    return alpha
+    
+def json_to_JDEK(X_j):
+    X_i = {}
+    for t_j in X_j:
+        t_i = int(t_j)
+        X_i[t_i] = {}
+        for b_j in X_j[t_j]:
+            b_i = int(b_j)
+            X_i[t_i][b_j] = {}
+            for g_j in X_j[t_j][b_j]:
+                g_i = tuple([int(g) for g in g_j.strip('(').strip(')').split(',')])
+                X_i[t_i][b_i][g_i] = X_j[t_j][b_j][g_j]
+    return X_i
+   
+def JDEK_to_json(X_i):
+    X_j = {}
+    for t_i in X_i:
+        X_j[t_i] = {}
+        for b_i in X_i[t_i]:
+            X_j[t_i][b_i] = {}
+            for g_i in X_i[t_i][b_i]:
+                X_j[t_i][b_i][str(g_i)] = X_i[t_i][b_i][g_i]
+    return X_j
+
+    
 #given a path write out the model that was computed
 def export_fusion_model(B,J,D,E,alpha,n,K,path):
+    J_j = JDEK_to_json(J)
+    D_j = JDEK_to_json(D)
+    E_j = JDEK_to_json(E)
+    K_j = JDEK_to_json(K)
     with gzip.GzipFile(path,'wb') as f:
-        pickle.dump({'B':B,'J':J,'D':D,'E':E,'alpha':alpha,'n':n,'K':K},f)
+        f.write(json.dumps({'B':B,'J':J_j,'D':D_j,'E':E_j,'alpha':alpha,'n':n,'K':K_j}))
         return True
     return False
 
 #given a path write out the model that was computed
-def import_fusion_model(path):
-    B,J,E,alpha,K = {},{},{},{},{}
-    with gzip.GzipFile(path,'rb') as f:
-        P = pickle.load(f)
-        B,J,D,E,alpha,n,K = P['B'],P['J'],P['D'],P['E'],P['alpha'],P['n'],P['K']
-    return B,J,D,E,alpha,n,K
+#def import_fusion_model(path):
+#    B,J,E,alpha,n,K = {},{},{},{},0,{}
+#    with gzip.GzipFile(path,'rb') as f:
+#        P_j   = json.loads(f.read())
+#        B     = json_to_B(P_j['B'])
+#        J     = json_to_JDEK(P_j['J'])
+#        D     = json_to_JDEK(P_j['D'])
+#        E     = json_to_JDEK(P_j['E'])
+#        alpha = json_to_alpha(P_j['alpha'])
+#        n     = int(P_j['n'])
+#        K     = json_to_JDEK(P_j['K'])
+#    return B,J,D,E,alpha,n,K
 
 #filter out these regions
 #Q[t][id][sname]
