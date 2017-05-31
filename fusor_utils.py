@@ -181,10 +181,21 @@ def json_to_alpha(alpha_j):
         alpha[t_i] = {}
         for b_j in alpha_j[t_j]:
             b_i = int(b_j)
-            alpha[t_i][b_i] = alpha_j[t_j][b_j]
+            alpha[t_i][b_i] = np.float128(alpha_j[t_j][b_j])
     return alpha
+
+def alpha_to_json(alpha):
+    alpha_j = {}
+    for t in alpha:
+        t_j = str(t)
+        alpha_j[t_j] = {}
+        for b in alpha[t]:
+            b_j = str(b)
+            alpha_j[t_j][b_j] = str(alpha[t][b])
+    return alpha_j
     
-def json_to_JDEK(X_j):
+#:::TO DO::: work out the numpy types
+def json_to_J(X_j):
     X_i = {}
     for t_j in X_j:
         t_i = int(t_j)
@@ -196,20 +207,50 @@ def json_to_JDEK(X_j):
                 g_i = tuple([int(g) for g in g_j.strip('(').strip(')').split(',')])
                 X_i[t_i][b_i][g_i] = X_j[t_j][b_j][g_j]
     return X_i
-   
-def JDEK_to_json(X_i):
+    
+#:::TO DO::: work out the numpy types   
+def J_to_json(X_i):
     X_j = {}
     for t_i in X_i:
-        X_j[t_i] = {}
+        t_j = str(t_i)
+        X_j[t_j] = {}
         for b_i in X_i[t_i]:
-            X_j[t_i][b_i] = {}
+            b_j = str(b_i)
+            X_j[t_j][b_j] = {}
             for g_i in X_i[t_i][b_i]:
-                X_j[t_i][b_i][str(g_i)] = X_i[t_i][b_i][g_i]
+                g_j = str(g_i)
+                X_j[t_j][b_j][g_j] = X_i[t_i][b_i][g_i]
     return X_j
 
-    
-#given a path write out the model that was computed
+def import_fusion_model(path):
+    B,J,E,alpha,K = {},{},{},{},{}
+    with gzip.GzipFile(path,'rb') as f:
+        P = pickle.load(f)
+        B,J,D,E,alpha,n,K = P['B'],P['J'],P['D'],P['E'],P['alpha'],P['n'],P['K']
+    return B,J,D,E,alpha,n,K
+
 def export_fusion_model(B,J,D,E,alpha,n,K,path):
+    with gzip.GzipFile(path,'wb') as f:
+        pickle.dump({'B':B,'J':J,'D':D,'E':E,'alpha':alpha,'n':n,'K':K},f)
+        return True
+    return False
+    
+#:::TO DO::: work out the numpy types
+def import_fusion_model_json(path):
+    B,J,E,alpha,n,K = {},{},{},{},0,{}
+    with gzip.GzipFile(path,'rb') as f:
+        P_j   = json.loads(f.read())
+        B     = json_to_B(P_j['B'])
+        J     = json_to_JDEK(P_j['J'])
+        D     = json_to_JDEK(P_j['D'])
+        E     = json_to_JDEK(P_j['E'])
+        alpha = json_to_alpha(P_j['alpha'])
+        n     = int(P_j['n'])
+        K     = json_to_JDEK(P_j['K'])
+    return B,J,D,E,alpha,n,K
+
+#:::TO DO::: work out the numpy types
+def export_fusion_model_json(B,J,D,E,alpha,n,K,path):
     J_j = JDEK_to_json(J)
     D_j = JDEK_to_json(D)
     E_j = JDEK_to_json(E)
@@ -218,20 +259,6 @@ def export_fusion_model(B,J,D,E,alpha,n,K,path):
         f.write(json.dumps({'B':B,'J':J_j,'D':D_j,'E':E_j,'alpha':alpha,'n':n,'K':K_j}))
         return True
     return False
-
-#given a path write out the model that was computed
-#def import_fusion_model(path):
-#    B,J,E,alpha,n,K = {},{},{},{},0,{}
-#    with gzip.GzipFile(path,'rb') as f:
-#        P_j   = json.loads(f.read())
-#        B     = json_to_B(P_j['B'])
-#        J     = json_to_JDEK(P_j['J'])
-#        D     = json_to_JDEK(P_j['D'])
-#        E     = json_to_JDEK(P_j['E'])
-#        alpha = json_to_alpha(P_j['alpha'])
-#        n     = int(P_j['n'])
-#        K     = json_to_JDEK(P_j['K'])
-#    return B,J,D,E,alpha,n,K
 
 #filter out these regions
 #Q[t][id][sname]
