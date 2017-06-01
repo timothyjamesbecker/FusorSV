@@ -6,7 +6,7 @@ Takes as input a callset or group of VCF calls made by several SV callers for on
 ![Alt text](images/fusorSV_overview_v3_crop.jpg?raw=true "SVE") <br>
 *illustration courtesy of Jane Cha <br>
 
-## Requirements (docker avaible soon)
+## Requirements (docker)
 docker toolbox (or engine) version 1.13.0+
 
 ```bash
@@ -14,43 +14,46 @@ docker pull timothyjamesbecker/fusorsv
 ```
 
 ## Requirements (non-docker)
-python 2.7.10 <br> 
-cython 0.23.4 <br> 
-pysam 0.9.1 <br> 
-numpy 1.10.0 <br>
+2.7.6 < python < 2.7.12 <br> 
+cython 0.23.4+ <br> 
+0.9.0 < pysam < 0.9.2 <br> 
+numpy 1.10.0+ <br>
 
 ### Options (non-docker)
 bx-python 0.5.0 (optional for crossmap liftover) <br> 
 mygene 3.0.0    (optional for gene annotations) <br> 
 
-### Building (automated pip will be available very soon)
-#### (1) If using pip: install the requirements:
+### Installation
+#### (A) pip: install the requirements and then a fusorsv release:
 
 ```
 pip --upgrade pip
-pip install -Iv 'cython>=0.23.4,<0.25.3'
+pip install -Iv 'cython>=0.23.4'
 pip install -Iv 'pysam>=0.9.0,<0.9.2'
-pip install -Iv 'numpy>=1.10.0,<1.11.0'
+pip install -Iv 'numpy>=1.10.0'
 
 (Optional)
 pip install -Iv 'bx-python>=0.5.0,<0.7.3'
 pip install -Iv 'mygene>=3.0.0'
+
+(Now FusorSV package)
+pip install https://
 ```
 
-#### (2) Clone the git repo or download a release:
+#### (B1) non-pip step 1: clone the current git repo:
 
 ```bash
 git clone https://github.com/timothyjamesbecker/FusorSV.git
 ```
 
-#### (3) Build the shared object fusion_utils.so and its bindings:
+#### (B2) non-pip step 2: build the shared object fusion_utils.so and its bindings:
 
 ```bash
-cd FusorSV
+cd FusorSV/fusorsv
 python fusion_utils.py build_ext --inplace
 ```
 
-#### (4) Test the requirements and shared library:
+#### (C) Test the requirements and shared library:
 
 ```bash
 FusorSV.py --test_libs
@@ -60,7 +63,7 @@ fusion_utils.so and bindings are functional!
 
 ```bash
 docker run -v ~/data:/data -it timothyjamesbecker/fusorsv\
-/software/FusorSV/FusorSV.py\
+FusorSV.py\
 -r /data/ref/human_g1k_v37_decoy.fa\
 -i /data/meta_caller_RC1/\
 -f /data/human_g1k_v37_decoy.P3.pickle.gz\
