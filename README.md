@@ -37,7 +37,7 @@ pip install -Iv 'bx-python>=0.5.0,<0.7.3'
 pip install -Iv 'mygene>=3.0.0'
 
 (Now FusorSV package)
-pip install https://https://github.com/timothyjamesbecker/FusorSV/releases/download/0.1.0-beta/fusorsv-0.1.0.tar.gz
+pip install https://github.com/timothyjamesbecker/FusorSV/releases/download/0.1.0-beta/fusorsv-0.1.0.tar.gz
 ```
 
 #### (II) Test the requirements and shared library:
