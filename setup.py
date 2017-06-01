@@ -5,6 +5,8 @@ from Cython.Build import cythonize
 from Cython.Distutils import build_ext
 import pysam
 import numpy
+import glob
+import os
 
 def two_dot(version):
     v = version.split('.')
@@ -18,7 +20,7 @@ def get_version():
             if line.startswith('__version__'):
                 return literal_eval(line.partition('=')[2].lstrip())
     raise ValueError("__version__ not found")    
-
+    
 cythonize('fusorsv/fusion_utils.pyx')
 extensions = [Extension('fusion_utils',
                         sources=['fusorsv/fusion_utils.pyx'],
@@ -43,7 +45,8 @@ setup(
                  'Topic :: Software Development :: Libraries :: Python Modules'],
     cmdclass = { 'build_ext': build_ext },
     ext_modules = extensions,
-    packages =   ['fusorsv'],
+    packages    =  ['fusorsv'],
+    package_data = {'fusorsv':['data/*.json','data/*.vcf','data/liftover/*.gz','data/models/*.gz']},
     scripts    = ['bin/FusorSV.py'])#,
     #install_requires = [])
                         #'cython>=0.24.0,<0.25.0',
