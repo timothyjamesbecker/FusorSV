@@ -24,7 +24,7 @@ bx-python 0.5.0 (optional for crossmap liftover) <br>
 mygene 3.0.0    (optional for gene annotations) <br> 
 
 ### Installation
-#### (A) pip: install the requirements and then a fusorsv release:
+#### (I) pip: install the requirements and then a fusorsv release:
 
 ```
 pip --upgrade pip
@@ -37,36 +37,29 @@ pip install -Iv 'bx-python>=0.5.0,<0.7.3'
 pip install -Iv 'mygene>=3.0.0'
 
 (Now FusorSV package)
-pip install https://
+pip install https://https://github.com/timothyjamesbecker/FusorSV/releases/download/0.1.0-beta/fusorsv-0.1.0.tar.gz
 ```
 
-#### (B1) non-pip step 1: clone the current git repo:
-
-```bash
-git clone https://github.com/timothyjamesbecker/FusorSV.git
-```
-
-#### (B2) non-pip step 2: build the shared object fusion_utils.so and its bindings:
-
-```bash
-cd FusorSV/fusorsv
-python fusion_utils.py build_ext --inplace
-```
-
-#### (C) Test the requirements and shared library:
-
+#### (II) Test the requirements and shared library:
 ```bash
 FusorSV.py --test_libs
 fusion_utils.so and bindings are functional!
 ```
-## Usage (omit the first line when using non-docker)
+A more indepth test can be done by downloading and decompressing the included release test data set:
 
+```bash
+wget https://github.com/timothyjamesbecker/FusorSV/releases/download/0.1.0-beta/meta_caller_RC1.tar.gz
+tar -xzf meta_caller_RC1.tar.gz 
+```
+and then following the usage guide below.
+
+## Usage (omit the first line when using non-docker)
 ```bash
 docker run -v ~/data:/data -it timothyjamesbecker/fusorsv\
 FusorSV.py\
 -r /data/ref/human_g1k_v37_decoy.fa\
 -i /data/meta_caller_RC1/\
--f /data/human_g1k_v37_decoy.P3.pickle.gz\
+-f DEFAULT\
 -o /data/meta_caller_RC1_result/\
 -M 0.5\
 -L DEFAULT
@@ -126,27 +119,6 @@ The number of calls made can often be very difference between a true call set us
 -c or --chroms is a comma separated list that can be used to constrict the sequences used for analysis such as 1,2,3 ect
 
 -p or --cpus is used to run more than one cpu or core during training.  This value is passed to 1/2 that number during the VCF generation phase allowing very large number of samples to be processed at the expense of a longer runtime.
-
-## Testing
-With each release the current fusion model file will be included with some documentation with regard to the SV callers supported.  This effort is in conjunction with the further development of the SVE repository (https://github.com/timothyjamesbecker/SVE).  To test your installation fully: 
-
-#### (a) download the metacaller_RC1.tar.gz and decompress it:
-
-```bash
-wget URL/meta_caller_RC1.tar.gz && tar -xzf meta_caller_RC1.tar.gz
-```
-
-#### (b) download the fusion model human_g1k_v37_decoy.P3.pickle.gz (it does not have to be uncompressed)
-```bash
-wget URL/human_g1k_v37_decoy.P3.pickle.gz
-```
-
-#### (c) run your installation
-Run the command form the usage section above and you can check your results to those already computed meta_caller_RC1_applied_results:
-
-```bash
-wget URL/meta_caller_RC1_applied_result.tar.gz
-```
 
 ### stage_map.json modifications: <br>
 
