@@ -74,10 +74,13 @@ else:
     print('no output directory specified')
     raise IOError
 if args.apply_fusion_model_path is not None:
-    apply_fusion_model_path = args.apply_fusion_model_path
-    if not os.path.exists(apply_fusion_model_path):
-        print('fusion model path does not exist!')
-        raise IOError
+    if args.apply_fusion_model_path.upper()=='DEFAULT':
+        apply_fusion_model_path =ru.get_local_path('models/human_g1k_v37_decoy.P3.pickle.gz')
+    else:
+        apply_fusion_model_path = args.apply_fusion_model_path
+        if not os.path.exists(apply_fusion_model_path):
+            print('fusion model path does not exist!')
+            raise IOError
 else:
     apply_fusion_model_path = None #implies you will make one with true input
 if args.ctg_dir is not None:
@@ -221,7 +224,7 @@ def apply_model_to_samples(sample,ref_path,chroms,types,bins,callers,O,
                            over_m,r=0.5,smoothing=False,detail=False,verbose=False,IDX=6):
     sname = sample[sample.rfind('/')+1:]                                          #extract sample identifier
     print('starting fusorSV discovery on sample %s'%sname)
-    ref_seq = {'.'.join(ref_path.rsplit('/')[-1].rsplit('.')[0:-1]):ru.read_fasta(ref_path,True)}      #~3GB
+    ref_seq = {'.'.join(ref_path.rsplit('/')[-1].rsplit('.')[0:-1]):ru.read_fasta(ref_path)}      #~3GB
     hist,C = {},{}
     cross_fold_stats,detailed_stats = {c:{} for c in callers},{}                         #each single caller
     for t in types:
@@ -484,7 +487,7 @@ if __name__ == '__main__':
         print('finished reading samples in %s sec'%round(stop-start,2))
         #||||||||||||||||||||||||||||||||||||||BY SAMPLE|||||||||||||||||||||||||||||||||||||||||||||         
         cross_fold_stats,hist,detailed_stats = fusor.assemble_stats(L)
-        ref_seq = {'.'.join(ref_path.rsplit('/')[-1].rsplit('.')[0:-1]):ru.read_fasta(ref_path,True)}
+        ref_seq = {'.'.join(ref_path.rsplit('/')[-1].rsplit('.')[0:-1]):ru.read_fasta(ref_path)}
         #compute cross_fold averages
         if not apply_fusion_model_path is None: 
             for c in cross_fold_stats:

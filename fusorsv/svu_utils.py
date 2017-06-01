@@ -147,7 +147,7 @@ def genome_to_vcf(D,ref_seq,types,chroms,callers,out_path,sname,
                 row = [D[i][0],                                #CHROM
                        str(D[i][1]),                           #POS
                        'fusorSV_'+str(i+1),                    #ID
-                       ref_seq[refname][D[i][0]].seq[D[i][1]], #REF
+                       ref_seq[refname][D[i][0]][D[i][1]],     #REF
                        '<'+types[D[i][8]]+'>',                 #ALT
                        '.',                                    #QUAL need to calculate
                        'PASS',                                 #devise a pre and post filter
