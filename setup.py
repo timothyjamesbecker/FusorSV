@@ -45,7 +45,7 @@ setup(
                  'Topic :: Software Development :: Libraries :: Python Modules'],
     cmdclass = { 'build_ext': build_ext },
     ext_modules = extensions,
-    packages    =  ['fusorsv'],
+    packages    =  ['fusorsv','cmmodule'],
     package_data = {'fusorsv':['data/*.json','data/*.vcf','data/liftover/*.gz','data/models/*.gz']},
     scripts    = ['bin/FusorSV.py'])#,
     #install_requires = [])
