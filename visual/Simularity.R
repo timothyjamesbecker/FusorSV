@@ -1,53 +1,26 @@
 #simulairity heat map plot for each type: DEL, INV, DUP
 
-#visualizations of SVU features and simularity metrics
-library('ggplot2');
-library('grid');
-library('gridExtra');
-library('plyr');
-library('reshape2');
+#Rscript cmd_parser.R commands...
+options(warn=-1);
+cmd_args <- commandArgs();
+scriptpath <- gsub('Simularity.R','',gsub('--file=','',cmd_args[4]));
+source(paste(scriptpath,'cmd_parser.R',sep=''));
+source(paste(scriptpath,'plot_utils.R',sep=''));
 
-get_sample_name<-function(full_path){
-	s <- strsplit(full_path,'/')[[1]]
-	s[length(s)-1]
-}
+#sim_matrix_path <- '/fusorsv_result/visual/sim_matrix.HEX.tsv';
+in_path    <- args['in_path'][[1]];
+in_file_split <- strsplit(in_path,'/')[[1]];
+in_file    <- in_file_split[length(in_file_split)];
+out_path   <- args['out_path'][[1]];
+out_file<-strsplit(in_file,'.tsv')[[1]]
+out_width  <- args['out_width'][[1]];
+out_height <- args['out_height'][[1]];
+t_size   <- args['t_size'][[1]]; #t_size <- 18;
 
-multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
-  plots <- c(list(...), plotlist)
-  numPlots = length(plots)
-  if (is.null(layout)) {
-    # Make the panel
-    # ncol: Number of columns of plots
-    # nrow: Number of rows needed, calculated from # of cols
-    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
-                    ncol = cols, nrow = ceiling(numPlots/cols))
-  }
- if (numPlots==1) {
-    print(plots[[1]])
-  } else {
-    grid.newpage()
-    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
-    for (i in 1:numPlots) {
-      # Get the i,j matrix positions of the regions that contain this subplot
-      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
-      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
-                                      layout.pos.col = matchidx$col))
-    }
-  }
-}
-
-change_caller_name<-function(data,n1,n2){
-	data[which(data[,'C1']==n1),'C1'] <- n2;
-	data[which(data[,'C2']==n1),'C2'] <- n2;
-	data
-}
-
-sim_matrix_path <- '/Users/tbecker/Desktop/meta_caller_NP4_result/visual/sim_matrix.0123456789ABCDEF101112131415161718191A.tsv';
-#sim_matrix_path <- '~/Desktop/TEMP/varsim_R1_big/visual/sim_matrix.tsv';
+sim_matrix_path <- in_path;
 col_names <- c('C1','C2','type','bin','j');
 data <- read.table(sim_matrix_path,header=T,sep='	',col.names=col_names,stringsAsFactors=F);
 types <- c('DEL','DUP','INV'); #dig out the interesting ones here
-t_size <- 18;
 
 data <- change_caller_name(data,'G1K-P3','True');
 
@@ -103,7 +76,7 @@ lgnd<-g_legend(p1 + theme(legend.key.size=unit(1.0,'in')) +
                theme(legend.position="right",legend.direction="horizontal",legend.text=element_text(angle=0,size=t_size)));
 	
 #svg(filename = '~/Desktop/TEMP/fusionSVU/visual/sim_matrix.svg',width=12,height=5)
-pdf('~/Desktop/sim_matrix_g1k_50X_27.pdf',width=28,height=12)
+pdf(paste(out_path,out_file,'.pdf',sep=''),width=out_width,height=out_height)
 g <- grid.arrange(arrangeGrob(p1 + theme(legend.position="none"),
                               p2 + theme(legend.position="none"),
                               p3 + theme(legend.position="none"),

@@ -129,7 +129,7 @@ if args.stage_map_json_file is not None:
 else:
     callers = ru.get_stage_map(ru.get_local_path('stage_map.json'))
     
-stage_exclude_list = [1,36] #default exclude list
+stage_exclude_list = [1,13,36] #default exclude list
 if args.stage_exclude_list is not None:
     try:
         stage_exclude_list = [int(i) for i in args.stage_exclude_list.rsplit(',')]
@@ -325,11 +325,11 @@ if __name__ == '__main__':
     #mask these regions------------------------------------------------------------------------------------
     R += ru.get_mask_regions('human_g1k_v37_decoy_svmask.json',O)               #svmask from ref complexity
 #    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_known_genes.json',O)          #known gene locations
-#    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_gap.json',O)                      #gaps in assembly
-#    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_microsatellite.json',O)            #microsatellites
-#    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_segmental_dups.json',O)             #segmental dups
-#    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_simple_repeats.json',O)             #simple repeats
-#    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_repeat_masker.json',O)        #repeat masker tracks
+    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_gap.json',O,complement=True)                      #gaps in assembly
+    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_microsatellite.json',O,complement=True)            #microsatellites
+    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_segmental_dups.json',O,complement=True)             #segmental dups
+    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_simple_repeats.json',O,complement=True)             #simple repeats
+    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_repeat_masker.json',O,complement=True)        #repeat masker tracks
     print('merging the svmask regions')
     start = time.time()
     R = ru.flatten_mask_regions(R,O,complement=False)                                       #single IRanges
@@ -340,24 +340,22 @@ if __name__ == '__main__':
     exclude_callers = stage_exclude_list                 #exclude caller options put any id here to exclude
     B = {t:[1,100,250,500,1000,5000,10000,50000,100000,1000000] for t in range(0,8)}
 #   B = fusor.distribute_bins(Q,k,n_b=beta,m_b=obs,lower=None,upper=None,event=False) #equal power distribution
-    B[1] = [1,50,100,1000,1000000]        
-    B[2] = [1,50,100, 400, 600, 950, 1250, 1550, 1950, 2250, 2950, 3650, 4800, 6150, 9000, 18500, 100000, 10000000]
-    B[3] = [1,50,500,1000,5000,10000,50000,250000,10000000]
-    B[5] = [1,50,100,250,500,1000,2500, 3500, 45000, 80000, 115000, 180000, 260000, 300000, 500000, 1000000]
+    B[1] = [1,50,100,1000,1000000]
+    B[2] = [1,50,100,400,600,950,1250,1550,1950,2250,2950,3650,4800,6150,9000,18500,100000,1000000]        
+    #B[2] = [1,50,100,400,600,950,1250,1550,1950,2250,2950,3650,4800,6150,9000,18500,100000,10000000]
+    B[3] = [1,50,1000,10000,50000,100000,250000,500000,1000000]
+    #B[3] = [1,50,500,1000,5000,10000,50000,250000,10000000]
+    B[5] = [1,50,2500,3500,45000,80000,115000,180000,260000,300000,375000,500000]
+    #B[5] = [1,50,100,250,500,1000,2500,3500,45000,80000,115000,180000,260000,300000,500000,1000000]
     types = {0:'SUB',1:'INS',2:'DEL',3:'DUP',4:'CNV',5:'INV',6:'TRA',7:'BND'}
     bins  = {t:su.pretty_ranges(B[t],'') for t in B}
     partition_path = out_dir+'/svul/'
     total_partitions = len(glob.glob(partition_path+'*.pickle.gz'))
-
-#    sname = samples[0][samples[0].rfind('/')+1:]                      #extract sample identifier
-#    print('reading sample %s'%sname)
-#    sname_partition_path = out_dir+'/svul/'+sname                                    #build path
-#    S,V = su.vcf_glob_to_svultd(samples[0]+'/*vcf',chroms,O,flt=flt,flt_exclude=[])
-#    S = su.filter_call_sets2(S,R,exclude=[])                                     #filter svmasks
-#    Q = fusor.slice_samples([[sname,S]])                                                 #legacy
-#    P = fusor.partition_sliced_samples(Q,B,exclude=[])                                #partition
-#    success = fusor.write_partitions_by_sample(sname_partition_path,P)    
     
+    #entry for check-------------------------------------
+    #c = fusor.check_sample_full(samples,-2,-3,O,R,chroms,types=[2,3,5],flt=0,r=0.9,self_merge=True)
+    #entry for check------------------------------------
+
     #||||||||||||||||||||||||||||||||||||||BY SAMPLE|||||||||||||||||||||||||||||||||||||||||||||
     #[1] read, parse, structure, select, partition and write out data for each sample if not done
     if total_partitions<1: #skip this step if you have already read and partitioned the data set      
@@ -379,7 +377,7 @@ if __name__ == '__main__':
         snames = [i[0] for i in L] #passing list of sample names
         #only have to read in the samples once
         stop = time.time()
-        total_partitions = len(glob.glob(partition_path+'*.pickle'))
+        total_partitions = len(glob.glob(partition_path+'*.pickle.gz'))
         print('finished reading %s out of %s samples generating %s partitions in %s sec'%\
               (len(snames),len(samples),total_partitions,round(stop-start,2)))
     #||||||||||||||||||||||||||||||||||||||BY SAMPLE|||||||||||||||||||||||||||||||||||||||||||||
@@ -489,7 +487,7 @@ if __name__ == '__main__':
         cross_fold_stats,hist,detailed_stats = fusor.assemble_stats(L)
         ref_seq = {'.'.join(ref_path.rsplit('/')[-1].rsplit('.')[0:-1]):ru.read_fasta(ref_path)}
         #compute cross_fold averages
-        if not apply_fusion_model_path is None: 
+        if apply_fusion_model_path is None: 
             for c in cross_fold_stats:
                 print('%s--------------------------------------------------------------'%callers[c])
                 for t in cross_fold_stats[c]:

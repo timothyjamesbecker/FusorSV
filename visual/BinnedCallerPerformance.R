@@ -1,57 +1,31 @@
 #Caller Jaccard Simularity to G1K.P3 by Type and Bin
 
-library('ggplot2');
-library('grid');
-library('gridExtra');
-library('plyr');
-library('reshape2');
+#Rscript cmd_parser.R commands...
+options(warn=-1);
+cmd_args <- commandArgs();
+scriptpath <- gsub('BinnedCallerPerformance.R','',gsub('--file=','',cmd_args[4]));
+source(paste(scriptpath,'cmd_parser.R',sep=''));
+source(paste(scriptpath,'plot_utils.R',sep=''));
 
-bin_order <- function(bin){
-	#looks like c('1-50','50-100','1.0K-1.5K',etc)
-	m <- as.data.frame(matrix(0,nrow=length(bin),ncol=1)); #extract value
-	rownames(m) <- bin;
-	colnames(m) <- 'bin';
-	for(b in 1:length(bin)){
-		upper <- strsplit(bin[b],'-')[[1]][2];
-		if(grepl('K',upper)){ m[b,1] <- as.numeric(strsplit(upper,'K')[[1]])*1E3;  }
-		if(grepl('M',upper)){ m[b,1] <- as.numeric(strsplit(upper,'M')[[1]])*1E6;  }
-		if(grepl('G',upper)){ m[b,1] <- as.numeric(strsplit(upper,'G')[[1]])*1E9;  }
-		if(grepl('T',upper)){ m[b,1] <- as.numeric(strsplit(upper,'T')[[1]])*1E12; }
-		if(!(grepl('K',upper) || grepl('M',upper) || grepl('G',upper) || grepl('T',upper))){
-			m[b,1] <- as.numeric(upper);
-		}
-	}
-	bin[order(m)]
-}
+#p_size  <- 3;
+#p_alpha <- 0.7;
+#m_size  <- 5;
+#t_size  <- 12;
 
-multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
-  plots <- c(list(...), plotlist)
-  numPlots = length(plots)
-  if (is.null(layout)) {
-    # Make the panel
-    # ncol: Number of columns of plots
-    # nrow: Number of rows needed, calculated from # of cols
-    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
-                    ncol = cols, nrow = ceiling(numPlots/cols))
-  }
- if (numPlots==1) {
-    print(plots[[1]])
-  } else {
-    grid.newpage()
-    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
-    for (i in 1:numPlots) {
-      # Get the i,j matrix positions of the regions that contain this subplot
-      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
-      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
-                                      layout.pos.col = matchidx$col))
-    }
-  }
-}
-
-p_size  <- 3;
-p_alpha <- 0.7;
-m_size  <- 5;
-t_size  <- 12;
+#'/fusorsv_result/visual/callers_tbj.tsv'
+in_path    <- args['in_path'][[1]];
+in_file_split <- strsplit(in_path,'/')[[1]];
+in_file    <- in_file_split[length(in_file_split)];
+out_path   <- args['out_path'][[1]];
+out_file<-strsplit(in_file,'.tsv')[[1]]
+#grap specfic listings here-----------------------
+out_width  <- args['out_width'][[1]];
+out_height <- args['out_height'][[1]];
+p_size     <- args['p_size'][[1]];
+p_alpha    <- args['p_alpha'][[1]];
+m_size     <- args['m_size'][[1]];
+t_size     <- args['t_size'][[1]];
+cat('input commands are',in_path,out_path);
 
 #red=1,royalblue=2,orange=3,lightgreen=4,green=5,pink=6,lightorange=7,lightblue=8,
 #light_purple=9,dark_purple=10,yellow=11,black=12,brown=13
@@ -60,8 +34,6 @@ cs <- c('#ff6666','#1f78b4','#ff7f00','#b2df8a',
         '#cab2d6','#6a3d9a','#e6ab02','#000000','#b15928');
 colors <- c(cs[3],cs[10],cs[4],cs[5],cs[11],
             cs[2],cs[1],cs[6],cs[8],cs[13],cs[9],cs[7]);
-in_path <- '/Users/tbecker/Desktop/meta_caller_NP4_result/visual/callers_tbj.0123456789ABCDEF101112131415161718191A.tsv'
-#in_path <- '~/Desktop/TEMP/varsim_R1_big/visual/callers_tbj.tsv'
 col_names <- c('caller','type','bin','j');
 data <- read.table(in_path,header=T,sep='	',col.names=col_names,stringsAsFactors=F);
 types <- c('DEL','DUP','INV');
@@ -90,7 +62,7 @@ p1 <- ggplot(aes(x=svlen,y=j,color=caller,group=caller,fill=caller),data=DEL) +
 	geom_point(size=2.0*p_size,alpha=p_alpha/2.0) +
 	scale_color_manual(values=colors) + 
 	scale_fill_manual(values=colors) +
-    #scale_y_continuous(expand=c(0.0,0.0),limits=c(0.0,0.6)) +
+    scale_y_continuous(expand=c(0.0,0.0),limits=c(0.0,0.6)) +
     theme_minimal() +
     theme(panel.background = element_rect(colour = "black")) +
 	theme(axis.text.x = element_text(angle=45,vjust=1,size=t_size,hjust=1)) +
@@ -103,7 +75,7 @@ p2 <- ggplot(aes(x=svlen,y=j,color=caller,group=caller,fill=caller),data=DUP) +
 	geom_point(size=2.0*p_size,alpha=p_alpha/2.0) +
 	scale_color_manual(values=colors) + 
 	scale_fill_manual(values=colors) +
-    #scale_y_continuous(expand=c(0.0,0.0),limits=c(0.0,0.3)) +
+    scale_y_continuous(expand=c(0.0,0.0),limits=c(0.0,0.3)) +
     theme_minimal() +
     theme(panel.background = element_rect(colour = "black")) +
 	theme(axis.text.x = element_text(angle=45,vjust=1,size=t_size,hjust=1)) +
@@ -116,7 +88,7 @@ p3 <- ggplot(aes(x=svlen,y=j,color=caller,group=caller,fill=caller),data=INV) +
 	geom_point(size=2.0*p_size,alpha=p_alpha/2.0) +
 	scale_color_manual(values=colors) + 
 	scale_fill_manual(values=colors) +
-    #scale_y_continuous(expand=c(0.0,0.0),limits=c(0.0,0.55)) +
+    scale_y_continuous(expand=c(0.0,0.0),limits=c(0.0,0.55)) +
     theme_minimal() +
     theme(panel.background = element_rect(colour = "black")) +
 	theme(axis.text.x = element_text(angle=45,vjust=1,size=t_size,hjust=1)) +
@@ -134,8 +106,7 @@ g_legend<-function(a.gplot){
 
 lgnd<-g_legend(p1 + theme(legend.position="bottom",legend.direction="horizontal"));
 
-pdf('~/Desktop/caller_perform_T_B_g1k_50X_27.pdf',width=14,height=14)
-#(filename = '~/Documents/CourseWork/16_2016_Spring/meta_caller_overlap/visual/callers_by_type_and_bin.png',width=800,height=600)
+pdf(paste(out_path,out_file,'.pdf',sep=''),width=out_width,height=out_height)
 g <- grid.arrange(arrangeGrob(p1 + theme(legend.position="none"),
                               p2 + theme(legend.position="none"),
                               p3 + theme(legend.position="none"),
