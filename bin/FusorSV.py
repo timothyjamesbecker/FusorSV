@@ -325,11 +325,11 @@ if __name__ == '__main__':
     #mask these regions------------------------------------------------------------------------------------
     R += ru.get_mask_regions('human_g1k_v37_decoy_svmask.json',O)               #svmask from ref complexity
 #    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_known_genes.json',O)          #known gene locations
-    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_gap.json',O,complement=True)                      #gaps in assembly
-    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_microsatellite.json',O,complement=True)            #microsatellites
-    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_segmental_dups.json',O,complement=True)             #segmental dups
-    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_simple_repeats.json',O,complement=True)             #simple repeats
-    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_repeat_masker.json',O,complement=True)        #repeat masker tracks
+#    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_gap.json',O,complement=True)                      #gaps in assembly
+#    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_microsatellite.json',O,complement=True)            #microsatellites
+#    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_segmental_dups.json',O,complement=True)             #segmental dups
+#    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_simple_repeats.json',O,complement=True)             #simple repeats
+#    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_repeat_masker.json',O,complement=True)        #repeat masker tracks
     print('merging the svmask regions')
     start = time.time()
     R = ru.flatten_mask_regions(R,O,complement=False)                                       #single IRanges
