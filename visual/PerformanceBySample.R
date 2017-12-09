@@ -1,52 +1,33 @@
 #Caller To Target Perfomance by Sample
 #take in the cross_fold_stat matrix as a .tsv and do the dot plot
 
-library('ggplot2');
-library('grid');
-library('gridExtra');
-library('plyr');
-library('reshape2');
+#Rscript cmd_parser.R commands...
+options(warn=-1);
+cmd_args <- commandArgs();
+scriptpath <- gsub('PerformanceBySample.R','',gsub('--file=','',cmd_args[4]));
+source(paste(scriptpath,'cmd_parser.R',sep=''));
+source(paste(scriptpath,'plot_utils.R',sep=''));
 
-get_sample_name<-function(full_path){
-	s <- strsplit(full_path,'/')[[1]]
-	s[length(s)-1]
-}
+#p_size  <- 1;
+#p_alpha <- 0.6;
+#m_size  <- 5;
+#t_size  <- 16;
 
-get_unique<-function(df,C){
-	#df[!duplicated(df[,C]),C]
-	df[,C]
-}
-
-find_hull <- function(df,x,y) { df[chull(df[,x],df[,y]),] }
-
-multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
-  plots <- c(list(...), plotlist)
-  numPlots = length(plots)
-  if (is.null(layout)) {
-    # Make the panel
-    # ncol: Number of columns of plots
-    # nrow: Number of rows needed, calculated from # of cols
-    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
-                    ncol = cols, nrow = ceiling(numPlots/cols))
-  }
- if (numPlots==1) {
-    print(plots[[1]])
-  } else {
-    grid.newpage()
-    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
-    for (i in 1:numPlots) {
-      # Get the i,j matrix positions of the regions that contain this subplot
-      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
-      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
-                                      layout.pos.col = matchidx$col))
-    }
-  }
-}
-
-p_size  <- 1;
-p_alpha <- 0.6;
-m_size  <- 5;
-t_size  <- 16;
+#'/fusorsv_result/visual/cross_fold_stats.HEX.tsv'
+in_path    <- args['in_path'][[1]];
+in_file_split <- strsplit(in_path,'/')[[1]];
+in_file    <- in_file_split[length(in_file_split)];
+out_path   <- args['out_path'][[1]];
+out_file<-strsplit(in_file,'.tsv')[[1]]
+#grap specfic listings here-----------------------
+out_width  <- args['out_width'][[1]];
+out_height <- args['out_height'][[1]];
+p_size     <- args['p_size'][[1]];
+p_alpha    <- args['p_alpha'][[1]];
+t_size     <- args['t_size'][[1]];
+m_size     <- args['m_size'][[1]];
+cross_fold <- args['cross_fold'][[1]];
+cat('input commands are',in_path,out_path);
 
 #red=1,royalblue=2,orange=3,lightgreen=4,green=5,pink=6,lightorange=7,lightblue=8,
 #light_purple=9,dark_purple=10,yellow=11,black=12,brown=13
@@ -56,23 +37,24 @@ cs <- c('#ff6666','#1f78b4','#ff7f00','#b2df8a',
 colors <- c(cs[3],cs[10],cs[4],cs[5],cs[11],cs[12],
             cs[2],cs[1],cs[6],cs[13],cs[8],cs[9],cs[7]);
 #loop over all the possible cross_fold leave one out validations and load into the same plot...         
-cross_fold <- F;
-#cross_fold_stats_path   <- '~/Desktop/TEMP/fusionSVU/visual/cross_fold_stats_NOFLT.tsv';
-#cross_fold_stats_path   <- '~/Desktop/TEMP/meta_caller_R4_filter/visual/cross_fold_stats_#ALL.tsv';
-cross_fold_stats_path   <- '/Users/tbecker/Desktop/meta_caller_R4_applied_result/visual/cross_fold_stats.0123456789ABCDEF101112131415161718191A.tsv';
-#cross_fold_stats_folder <- '~/Documents/CourseWork/16_2016_Spring/meta_caller_R4_fused/visual/';
+#cross_fold <- F;
 #cross_fold_stats_folder <- '~/Desktop/TEMP/kfold_plots/';
+cross_fold_stats_path <- in_path;
 col_names <- c('sample','caller','type','prec','rec','f1','j','n','m','l_mu','r_mu','l_sd','r_sd');
 
 if(cross_fold){
+	cat('\nreading input directory: ',cross_fold_stats_folder,'\n')
 	loocv <- list.files(path=cross_fold_stats_folder,pattern='*.tsv');
 	data <- data.frame();
 	for(i in 1:length(loocv)){
 		data <- rbind(data,read.table(paste(cross_fold_stats_folder,loocv[i],sep=''),
 	                                  header=T,sep='	',col.names=col_names,stringsAsFactors=F))
 	}
+	cat('finished reading directory: ',cross_fold_stats_folder, '\n')
 }else{
-	data <- read.table(cross_fold_stats_path,header=T,sep='	',col.names=col_names,stringsAsFactors=F);	
+	cat('\nreading input file: ', cross_fold_stats_path,'\n')
+	data <- read.table(cross_fold_stats_path,header=T,sep='	',col.names=col_names,stringsAsFactors=F);
+	cat('\nfinished reading file: ', cross_fold_stats_path,'\n')	
 }
 types <- c('DEL','DUP','INV'); #dig out the interesting ones here
 #subset callers if needed for plots
@@ -281,8 +263,7 @@ g_legend<-function(a.gplot){
 lgnd<-g_legend(p1 + theme(legend.position="right",legend.direction="vertical")+
                     theme(legend.key.size=unit(0.8,'in'),legend.text=element_text(angle=0,size=t_size)));
 
-#png(filename = '~/Documents/CourseWork/16_2016_Spring/meta_caller_final/visual/performance_by_sample.png',width=800,height=600)
-pdf('/Users/tbecker/Desktop/meta_caller_R4_applied_result/visual/cross_fold_stats.pdf',width=28,height=24)
+pdf(paste(out_path,in_file,'.pdf',sep=''),width=out_width,height=out_height)
 # #svg(filename = '~/Desktop/TEMP/k3_fold_performance_by_sample.svg',width=6,height=8)
 g1 <- grid.arrange(arrangeGrob(p1 + theme(legend.position="none"),
                                p2 + theme(legend.position="none"),

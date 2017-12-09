@@ -40,5 +40,5 @@ for(i in names(L)){
 cat('\n')
 old <- c(ls(),'old'); #clean up the namespace
 args <- L;
-rm('list'= old);  #should only have args now
+#rm('list'= old);  #should only have args now
 #cat('env=',ls(),'\n'); #check it out...

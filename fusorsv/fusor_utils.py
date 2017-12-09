@@ -12,6 +12,7 @@ import itertools as it
 import numpy as np
 #local libs
 import fusion_utils as fu
+import svu_utils as su
 
 #puts D2 into D1
 def tb_merge(D1,D2):
@@ -1715,6 +1716,23 @@ def score_sample(S,k,F,self_merge=True):
         if F.has_key(t):
             T[-1][t] = fu.jaccard_score(S[k][t],F[t],self_merge)
     return T
+
+def check_sample_full(samples,s_id1,s_id2,O,R,chroms,types=[2,3,5],flt=0,r=0.5,self_merge=True):
+    c = {}
+    for sample in samples:  
+        S,V = su.vcf_glob_to_svultd(sample+'/*vcf',chroms,O,flt=flt)
+        S = su.filter_call_sets2(S,R,exclude=[])
+        for t in types:
+            if S[s_id1].has_key(t) and S[s_id2].has_key(t):
+                if not c.has_key(t): c[t] = {'prec':[],'rec':[],'f1':[],'j':[],'m':[],'n':[]}
+                m = fu.metric_score(S[s_id1][t],S[s_id2][t],r=r,self_merge=True)
+                c[t]['prec'] += [m['n:m']]
+                c[t]['rec']  += [m['m:n']]
+                c[t]['f1']   += [2*(m['n:m']*m['m:n'])/(m['m:n']+m['n:m'])]
+                c[t]['j']    += [m['j'][0]/m['j'][1]]
+                c[t]['n']    += [m['n']]
+                c[t]['m']    += [m['m']]
+    return c 
 
 #temperary helper function for viewing
 def pretty_stats(Q,types,t,k,c_id,sname,r=0.5,verbose=True):
