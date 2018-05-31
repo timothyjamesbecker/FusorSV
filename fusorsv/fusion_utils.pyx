@@ -9,7 +9,7 @@ import math
 import numpy as np
 cimport numpy as np
 cimport cython
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 # read all rle encoded gzip compressed freq files from a glob directory root
 @cython.boundscheck(False)
 @cython.nonecheck(False)
@@ -307,7 +307,7 @@ def metric_score_zig(list C1,list C2,double r,bint self_merge=False):
 @cython.boundscheck(False)
 @cython.nonecheck(False) 
 def metric_score(list C1,list C2,double r,bint self_merge=False,
-                 bint d1_ids=False,bint d2_ids=False):
+                 bint brkpts=False, bint d1_ids=False,bint d2_ids=False):
     cdef long i,j,n,m
     cdef double a,b,c,w
     cdef dict A,B
@@ -316,18 +316,29 @@ def metric_score(list C1,list C2,double r,bint self_merge=False,
         C1 = merge_regions(C1)
         C2 = merge_regions(C2)
     n,m = len(C1),len(C2)
-    A,B,X,W,d1_i,d2_i = {},{},[None for i in range(n)],[0.0,0.0,0.0,0.0],[],[]
+    A,B,W,d1_i,d2_i = {},{},[0.0,0.0,0.0,0.0],[],[]
+    X = []#[None for i in range(n)]
     a,b = 0.0,0.0
     if n > 0 and m > 0:
-        for i in range(n):
-            for j in range(m):
-                c = overlap(<long>C1[i][0],<long>C1[i][1],<long>C2[j][0],<long>C2[j][1])
-                if c >= r:
-                    if not A.has_key(i) or A[i]<c:
-                        A[i] = c
-                        X[i] = [<long>C1[i][0]-<long>C2[j][0],<long>C1[i][1]-<long>C2[j][1]]
-                    if not B.has_key(j) or B[j]<c:
-                        B[j] = c 
+        if brkpts:
+            for i in range(n):
+                for j in range(m):
+                    c = overlap(<long>C1[i][0],<long>C1[i][1],<long>C2[j][0],<long>C2[j][1])
+                    if c >= r:
+                        if not A.has_key(i) or A[i]<c:
+                            A[i] = c
+                            X[i] = [<long>C1[i][0]-<long>C2[j][0],<long>C1[i][1]-<long>C2[j][1]]
+                        if not B.has_key(j) or B[j]<c:
+                            B[j] = c
+        else:
+            for i in range(n):
+                for j in range(m):
+                    c = overlap(<long>C1[i][0],<long>C1[i][1],<long>C2[j][0],<long>C2[j][1])
+                    if c >= r:
+                        if not A.has_key(i) or A[i]<c:
+                            A[i] = c
+                        if not B.has_key(j) or B[j]<c:
+                            B[j] = c
         a = 1.0*len(A)/<double>n
         b = 1.0*len(B)/<double>m
         W = feature_magnitudes(C1,C2,True)       

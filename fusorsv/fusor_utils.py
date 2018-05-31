@@ -574,7 +574,7 @@ def brkpt_stats(X):
     return [x_n,x_sm,x_mu,x_md,x_sd,x_sk,x_ks]
     
 #breakpoint differentials to the target
-def all_samples_all_callers_bkpts(P,snames,k=0,r=0.5,self_merge=False,exclude=[1],verbose=False):
+def all_samples_all_callers_bkpts(P,snames,k=0,r=0.5,self_merge=False,exclude=[1],verbose=False,brkpts=False):
     M = {}
     for t in P:
         M[t] = {}
@@ -587,7 +587,7 @@ def all_samples_all_callers_bkpts(P,snames,k=0,r=0.5,self_merge=False,exclude=[1
                     C1,C2 = [],[]
                     if P[t][b].has_key(k) and P[t][b][k].has_key(sname): C1 = P[t][b][k][sname]
                     if P[t][b].has_key(i) and P[t][b][i].has_key(sname): C2 = P[t][b][i][sname]
-                    s = fu.metric_score(C1,C2,r,self_merge=False,d1_ids=False,d2_ids=False)
+                    s = fu.metric_score(C1,C2,r,self_merge=False,d1_ids=False,d2_ids=False,brkpts=brkpts)
                     for brkpt in s['b']: #leave in the None now....
                         if brkpt is not None:
                             M[t][b][(i,)]['L'] += [np.float64(brkpt[0])]
@@ -1717,7 +1717,7 @@ def score_sample(S,k,F,self_merge=True):
             T[-1][t] = fu.jaccard_score(S[k][t],F[t],self_merge)
     return T
 
-def check_sample_full(samples,s_id1,s_id2,O,R,chroms,types=[2,3,5],flt=0,r=0.5,self_merge=True):
+def check_sample_full(samples,s_id1,s_id2,O,R,chroms,types=[2,3,5],flt=0,r=0.5,self_merge=True,brkpts=False):
     c = {}
     for sample in samples:  
         S,V = su.vcf_glob_to_svultd(sample+'/*vcf',chroms,O,flt=flt)
@@ -1735,12 +1735,12 @@ def check_sample_full(samples,s_id1,s_id2,O,R,chroms,types=[2,3,5],flt=0,r=0.5,s
     return c 
 
 #temperary helper function for viewing
-def pretty_stats(Q,types,t,k,c_id,sname,r=0.5,verbose=True):
+def pretty_stats(Q,types,t,k,c_id,sname,r=0.5,verbose=True,brkpts=False):
     C1,C2 = [],[]
     if Q[t].has_key(k) and Q[t][k].has_key(sname):       C1 = Q[t][k][sname]
     if Q[t].has_key(c_id) and Q[t][c_id].has_key(sname): C2 = Q[t][c_id][sname]            
-    s = fu.metric_score(C1,C2,r,self_merge=False,d1_ids=True,d2_ids=True)
-    q = fu.metric_score(C1,C2,r,self_merge=True,d1_ids=False,d2_ids=False)
+    s = fu.metric_score(C1,C2,r,self_merge=False,d1_ids=True,d2_ids=True,brkpts=brkpts)
+    q = fu.metric_score(C1,C2,r,self_merge=True,d1_ids=False,d2_ids=False,brkpts=brkpts)
     d2_ids,ids = s['d2_ids'],[]               #now get the idx indecies from C1
     for i in d2_ids: ids += [i] #and make a list of idx entries
     prec,rec,f1,j = s['n:m'],s['m:n'],0.0,0.0
@@ -1758,15 +1758,15 @@ def pretty_stats(Q,types,t,k,c_id,sname,r=0.5,verbose=True):
     #0=sname, 1=prec, 2=rec, 3=f1, 4=j, 5=ids, 6=n, 7=m, 8=l_mu, 9=r_mu, 10=l_sd, 11=r_sd
 
 #repartitioning is easiest and then return all the bins
-def pretty_bin_stats(Q,types,t,B,bins,k,c_id,sname,r=0.5,verbose=True):
+def pretty_bin_stats(Q,types,t,B,bins,k,c_id,sname,r=0.5,verbose=True,brkpts=False):
     P = partition_sliced_samples(Q,B,exclude=[])
     D = {}
     for i in range(len(B[t])-1):
         C1,C2 = [],[]
         if P[t][i].has_key(k) and P[t][i][k].has_key(sname):       C1 = P[t][i][k][sname]
         if P[t][i].has_key(c_id) and P[t][i][c_id].has_key(sname): C2 = P[t][i][c_id][sname]
-        s = fu.metric_score(C1,C2,r,self_merge=False,d1_ids=True,d2_ids=True)
-        q = fu.metric_score(C1,C2,r,self_merge=True,d1_ids=False,d2_ids=False)
+        s = fu.metric_score(C1,C2,r,self_merge=False,d1_ids=True,d2_ids=True,brkpts=brkpts)
+        q = fu.metric_score(C1,C2,r,self_merge=True,d1_ids=False,d2_ids=False,brkpts=brkpts)
         d1_ids,d2_ids = s['d1_ids'],s['d2_ids']   #now get the idx indecies from C1
         prec,rec,f1,j = s['n:m'],s['m:n'],0.0,0.0
         L,R = [],[]

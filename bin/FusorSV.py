@@ -109,9 +109,9 @@ else:                    obs = 1000
 if args.min_g is not None: min_g = args.min_g
 else:                      min_g = 0.0
 if args.over_m is not None: over_m = args.over_m
-else:                       over_m = 1E-10        #1bp overlap in a human genome = 3E9
+else:                       over_m = 1E-10        #1bp overlap in a human genome = 3E-9
 if args.chroms is not None:
-    chroms = args.chrom.split(',')
+    chroms = args.chroms.split(',')
 else:
     chroms = [str(i) for i in range(1,23)]+['X','Y','MT'] #limit to chroms of interest
 if args.cluster_overlap is not None: cluster_overlap = args.cluster_overlap
@@ -263,9 +263,9 @@ def apply_model_to_samples(sample,ref_path,chroms,types,bins,callers,O,
     for t in Q:                                  #give the metrics for each sample and write out the result
         for c in set(cross_fold_stats).difference(set([f_id,k])):
             if verbose: print('%s%s'%(callers[c],''.join(['-' for i in range(80)])))   #other callers first
-            cross_fold_stats[c][t] += [fusor.pretty_stats(Q,types,t,k,c,sname,r,verbose)]
+            cross_fold_stats[c][t] += [fusor.pretty_stats(Q,types,t,k,c,sname,r,verbose,smoothing)]
         if verbose: print('fusorSV%s'%(''.join(['-' for i in range(80)])))                    #then fusorSV
-        cross_fold_stats[f_id][t] += [fusor.pretty_stats(Q,types,t,k,f_id,sname,r,verbose)]
+        cross_fold_stats[f_id][t] += [fusor.pretty_stats(Q,types,t,k,f_id,sname,r,verbose,smoothing)]
         C[t] = []
         if Q[t].has_key(f_id) and Q[t][f_id].has_key(sname):
             C[t] = Q[t][f_id][sname]
@@ -285,11 +285,11 @@ def apply_model_to_samples(sample,ref_path,chroms,types,bins,callers,O,
         for t in Q:
             for c in set(detailed_stats.keys()).difference(set([f_id,k])):            #do the other callers
                 if verbose: print('%s%s'%(callers[c],''.join(['-' for x in range(80)])))
-                T = fusor.pretty_bin_stats(Q,types,t,B,bins,k,c,sname,r,verbose)
+                T = fusor.pretty_bin_stats(Q,types,t,B,bins,k,c,sname,r,verbose,smoothing)
                 for i in range(len(B[t])-1):
                     detailed_stats[c][t][bins[t][i]] = [T[bins[t][i]]]
             if verbose: print('fusorSV%s'%(''.join(['-' for i in range(80)])))
-            T = fusor.pretty_bin_stats(Q,types,t,B,bins,k,f_id,sname,r,verbose)                 #no fusorSV
+            T = fusor.pretty_bin_stats(Q,types,t,B,bins,k,f_id,sname,r,verbose,smoothing)                 #no fusorSV
             for i in range(len(B[t])-1):
                 detailed_stats[f_id][t][bins[t][i]] = [T[bins[t][i]]]
     
@@ -392,6 +392,8 @@ if __name__ == '__main__':
         trn_ids = sorted(list(set(range(len(samples))).difference(set(tst_ids))))
         tst_str = ''.join([hex(i)[2:].upper() for i in tst_ids]) #get a id sorted hex string of the ids used
         trn_str = ''.join([hex(i)[2:].upper() for i in trn_ids]) #get a id sorted hex string of the ids used
+        if len(tst_str)>10: tst_str = str(hash(tst_str))
+        if len(trn_str)>10: trn_str = str(hash(trn_str))
         
         #||||||||||||||||||||||||||||||||||||||BY PARTITION||||||||||||||||||||||||||||||||||||||||||
         #[2]train or apply the model
