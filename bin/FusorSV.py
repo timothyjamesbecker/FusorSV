@@ -319,11 +319,8 @@ if __name__ == '__main__':
         snames  += [i.rsplit('/')[-1]]      
     #snames,samples = snames[0:2],samples[0:2] #testing line
     
-    print('processing samples %s\n for chroms %s'%(samples,chroms))  
-    #:::TO DO::: automate the coordinate construction for use with alternate assemblies
+    print('processing samples %s\n for chroms %s'%(samples,chroms))
     coordinate_offset_json = ref_path.rsplit('.fa')[0]+'_coordinates.json'
-    print(coordinate_offset_json)
-    print(os.path.isfile(coordinate_offset_json))
     if not os.path.isfile(coordinate_offset_json):
         print('making a new coordinate offset json file')
         ru.write_coordinate_offsets(ref_path,coordinate_offset_json)
@@ -331,7 +328,7 @@ if __name__ == '__main__':
     R = []
     if args.sv_mask is not None: #None if no mask desired
         sv_mask_json = args.sv_mask.rsplit('.bed')[0]+'_svmask.json'
-        if not os.path.exists(coordinate_offset_json):
+        if not os.path.exists(sv_mask_json):
             ru.bed_mask_to_json_mask(args.sv_mask,sv_mask_json)
         #mask these regions------------------------------------------------------------------------------------
         R += ru.get_mask_regions(sv_mask_json,O)               #svmask from ref complexity

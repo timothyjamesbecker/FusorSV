@@ -130,11 +130,9 @@ def get_chrom_dict(json_name):
 #input is json data store for svmask regions which are the chrom and start,stop pairs
 #in the 0-chrom_length form and a offsetmap object O that will update coordnates
 #output is a sorted by ref start pos list of list to filter on
-def get_mask_regions(json_name,O,complement=False,path=None):
-    if path is None:
-        path = os.path.dirname(os.path.abspath(__file__))+'/data/'+json_name
+def get_mask_regions(json_path,O,complement=False):
     M = {}
-    with open(path,'r') as f:
+    with open(json_path,'r') as f:
         M = json.load(f) #load the svmask per sequence
     N = []    
     for k in M:
