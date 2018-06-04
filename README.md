@@ -1,5 +1,5 @@
 # FusorSV
-(c) 2016-2017 Timothy Becker  <br> <br>
+(c) 2016-2018 Timothy Becker  <br> <br>
 A Data Fusion Method for Multi Source (VCF4.0+) Structural Variation Analysis. <br>
 Takes as input a callset or group of VCF calls made by several SV callers for one sample and applies prior knowledge encoded in a fusion model to merge together the results that provide the best merging of the input files.  The resulting VCF file can be coordinate lifted and all samples can be clustered together based on reciprocal overlap.  The output includes for every FusorSV call the caller identifier and the specific call from that caller ids input VCF that contributed to the call in addition to an expectation estimate given the prior expectations on the agreement in that call.  Prior expectations are derived by using an alternate training mode that requires a true callset be given for each training observation that is used. <br> 
 
@@ -37,7 +37,7 @@ pip install -Iv 'bx-python>=0.5.0,<0.7.3'
 pip install -Iv 'mygene>=3.0.0'
 
 (Now FusorSV package)
-pip install https://github.com/timothyjamesbecker/FusorSV/releases/download/0.1.0-beta/fusorsv-0.1.0.tar.gz
+pip install https://github.com/timothyjamesbecker/FusorSV/releases/download/0.1.1-beta/fusorsv-0.1.1.tar.gz
 ```
 
 #### (II) Test the requirements and shared library:
@@ -111,6 +111,8 @@ For every call that has more than r % of reciprocal overlap with a call in the t
 
 #### (e) number of calls made
 The number of calls made can often be very difference between a true call set used in training and the calls that are generated under different circumstance.  For diagnostic purposes and reporting, these values are kept and tabulated in the FusorSV/visual folder.
+
+-E or --stage_exclude_list is used to filter out calls made by a particuliar caller id.  For example if you have VCF files for caller id 4,9,10,11,17 but only want 4,9,17 you would use: -E 10,11 to exclude caller id 10 and 11 from training or application. The default exclude is 1,13,36.
 
 -M or --cluster_overlap is used to apply optional clustering of the resulting individual per sample FusorSV VCF file, where a decimal is given r = [0.0,1.0] that is used to cluster those calls that have >= r amount of reciprocal overlap. In the resulting clustered VCF file: all_samples_genotypes.vcf each individual call still reports the SV caller that contributed, but now they are aggregated across the samples by the SV caller id.
 
