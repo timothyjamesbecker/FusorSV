@@ -334,7 +334,7 @@ if __name__ == '__main__':
         if not os.path.exists(coordinate_offset_json):
             ru.bed_mask_to_json_mask(args.sv_mask,sv_mask_json)
         #mask these regions------------------------------------------------------------------------------------
-        R += ru.get_mask_regions('human_g1k_v37_decoy_svmask.json',O)               #svmask from ref complexity
+        R += ru.get_mask_regions(sv_mask_json,O)               #svmask from ref complexity
     #    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_known_genes.json',O)          #known gene locations
     #    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_gap.json',O,complement=True)                      #gaps in assembly
     #    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_microsatellite.json',O,complement=True)            #microsatellites
