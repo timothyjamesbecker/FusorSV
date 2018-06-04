@@ -1,6 +1,3 @@
-#modifying this library to have the ability to skip the NNNNN regions of the regnome
-#could also get into the alignibilty of a given read length onto a seq like genome strip...
-
 import os
 import json
 import numpy as np
@@ -64,7 +61,7 @@ def write_fasta(seqs,fasta_path,index=True):
     if index: pysam.faidx(fasta_path) #reindex
     return True    
     
-#ss is a HTSeq Sequence list?   
+#ss is a HTSeq Sequence list
 def write_fasta_by_chrom(seqs, chrom_fasta_dir, chrom_base=''):
     names = []
     for k in seqs:
@@ -87,10 +84,9 @@ def get_local_path(local_path):
     path = os.path.dirname(os.path.abspath(__file__))+'/data/'
     return path+local_path
    
-def get_coordinate_offsets(json_name):
-    path = os.path.dirname(os.path.abspath(__file__))+'/data/'
+def get_coordinate_offsets(json_path):
     info,O = {},{}
-    with open(path+json_name,'r') as f:
+    with open(json_path,'r') as f:
         info = json.load(f)
     for i in info:
         O[str(i)] = info[i]
@@ -131,12 +127,14 @@ def get_chrom_dict(json_name):
         I[str(i)] = int(info[i])
     return I
     
-#input is json data store for svmask regions and  offset map O
+#input is json data store for svmask regions which are the chrom and start,stop pairs
+#in the 0-chrom_length form and a offsetmap object O that will update coordnates
 #output is a sorted by ref start pos list of list to filter on
-def get_mask_regions(json_name,O,complement=False):
-    path = os.path.dirname(os.path.abspath(__file__))+'/data/'
+def get_mask_regions(json_name,O,complement=False,path=None):
+    if path is None:
+        path = os.path.dirname(os.path.abspath(__file__))+'/data/'+json_name
     M = {}
-    with open(path+json_name,'r') as f:
+    with open(path,'r') as f:
         M = json.load(f) #load the svmask per sequence
     N = []    
     for k in M:
@@ -192,8 +190,8 @@ def bed_mask_to_json_mask(bed_path,json_path):
     data = {}
     for row in bed_data: #chrom,start,stop
         if len(row)>=3:
-            if data.has_key(row[0]): data[row[0]] += [[int(row[1]),int(row[2])]]
-            else:                    data[row[0]]  = [[int(row[1]),int(row[2])]]
+            if data.has_key(row[0]): data[row[0]] += [[int(row[1]),int(row[2])-1]]
+            else:                    data[row[0]]  = [[int(row[1]),int(row[2])-1]]
     for k in data:
         data[k] = sorted(data[k], key = lambda x: x[0])
     #no coordinate sort per contig

@@ -14,7 +14,7 @@ import fusorsv.fusor_utils as fusor
 
 des = """
 FusorSV - A Data Fusion Method for Multi Source (VCF4.0+) Structural Variation Analysis
-Timothy James Becker, PhD candidate, UCONN 05/25/2016-06/03/2018\n version="""+fusor.__version__
+Timothy James Becker, PhD candidate, UCONN 05/25/2016-06/03/2018\n version="""+fusor.fu.__version__
 parser = argparse.ArgumentParser(description=des,formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument('-r', '--ref_path',type=str, help='reference fasta needed to write vcf or g1k output files\t[None]')
 des = """
@@ -24,17 +24,18 @@ parser.add_argument('-i', '--in_dir',type=str, help=des)
 parser.add_argument('-a', '--ctg_dir',type=str,help='assembly contig directory\t[None]')
 parser.add_argument('-c', '--chroms',type=str,help='comma seperated chrom listing\t[1,2,...22,X,Y,MT]')
 parser.add_argument('-o', '--out_dir',type=str, help='outputdirectory to save ...bam.bai/ into\t[None]')
+parser.add_argument('-m', '--sv_mask',type=str,help='user supplied svmask file in BED3 format\t[None]')
 parser.add_argument('-f', '--apply_fusion_model_path',type=str, help='apply a fusion model *.pickle.gz')
-parser.add_argument('-k', '--k_fold',type=int,help='k_fold cross validation, k=0 implies no validation\t[0]')
-parser.add_argument('-n', '--n_k',type=int,help='number of times to do k_fold\t[1]')
 parser.add_argument('-p', '--cpus',type=int,help='number of cores to use in ||\t[1]')
-parser.add_argument('-b', '--bins',type=int,help='number of requested discriminating features\t[14]')
-parser.add_argument('-e', '--obs',type=int,help='number of observations needed per bin\t[1000]')
-parser.add_argument('-g', '--min_g',type=float,help='minimum group expectation contribution\t[0.0]')
-parser.add_argument('-l', '--over_m',type=float,help='overlap allowed before removal in merge step\t[0.0]')
-parser.add_argument('-m', '--pre_cluster',action='store_true', help='cluster the calls for all samples first\t[False]')
-parser.add_argument('-s', '--brkpt_smoothing',action='store_true', help='brkpt_smoothing algo\t[False]')
-parser.add_argument('-u', '--ucsc_filter',action='store_true', help='apply stringent UCSC filter tracks\t[False]')
+parser.add_argument('--k_fold',type=int,help='k_fold cross validation, k=0 implies no validation\t[0]')
+parser.add_argument('--n_k',type=int,help='number of times to do k_fold\t[1]')
+parser.add_argument('--bins',type=int,help='number of requested discriminating features\t[14]')
+parser.add_argument('--obs',type=int,help='number of observations needed per bin\t[1000]')
+parser.add_argument('--min_g',type=float,help='minimum group expectation contribution\t[0.0]')
+parser.add_argument('--over_m',type=float,help='overlap allowed before removal in merge step\t[0.0]')
+parser.add_argument('--pre_cluster',action='store_true', help='cluster the calls for all samples first\t[False]')
+parser.add_argument('--brkpt_smoothing',action='store_true', help='brkpt_smoothing algo\t[False]')
+parser.add_argument('--ucsc_filter',action='store_true', help='apply stringent UCSC filter tracks\t[False]')
 stage_mapping = """
 1:1 mapping of caller ids to stage names (and back):
 stage_map_json_file -> {0:'True',-1:'fusorSV',1:'MetaSV',4:'BreakDancer',9:'cnMOPS',10:'CNVnator',
@@ -320,22 +321,32 @@ if __name__ == '__main__':
     
     print('processing samples %s\n for chroms %s'%(samples,chroms))  
     #:::TO DO::: automate the coordinate construction for use with alternate assemblies
-    O = ru.get_coordinate_offsets('human_g1k_v37_decoy_coordinates.json')    #load the reference offset map
+    coordinate_offset_json = ref_path.rsplit('.fa')[0]+'_coordinates.json'
+    print(coordinate_offset_json)
+    print(os.path.isfile(coordinate_offset_json))
+    if not os.path.isfile(coordinate_offset_json):
+        print('making a new coordinate offset json file')
+        ru.write_coordinate_offsets(ref_path,coordinate_offset_json)
+    O = ru.get_coordinate_offsets(coordinate_offset_json)    #load the reference offset map
     R = []
-    #mask these regions------------------------------------------------------------------------------------
-    R += ru.get_mask_regions('human_g1k_v37_decoy_svmask.json',O)               #svmask from ref complexity
-#    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_known_genes.json',O)          #known gene locations
-#    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_gap.json',O,complement=True)                      #gaps in assembly
-#    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_microsatellite.json',O,complement=True)            #microsatellites
-#    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_segmental_dups.json',O,complement=True)             #segmental dups
-#    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_simple_repeats.json',O,complement=True)             #simple repeats
-#    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_repeat_masker.json',O,complement=True)        #repeat masker tracks
-    print('merging the svmask regions')
-    start = time.time()
-    R = ru.flatten_mask_regions(R,O,complement=False)                                       #single IRanges
-    stop = time.time()
-    print('svmask regions merged in %s sec'%(round(stop-start,2)))
-    #mask these regions------------------------------------------------------------------------------------
+    if args.sv_mask is not None: #None if no mask desired
+        sv_mask_json = args.sv_mask.rsplit('.bed')[0]+'_svmask.json'
+        if not os.path.exists(coordinate_offset_json):
+            ru.bed_mask_to_json_mask(args.sv_mask,sv_mask_json)
+        #mask these regions------------------------------------------------------------------------------------
+        R += ru.get_mask_regions('human_g1k_v37_decoy_svmask.json',O)               #svmask from ref complexity
+    #    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_known_genes.json',O)          #known gene locations
+    #    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_gap.json',O,complement=True)                      #gaps in assembly
+    #    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_microsatellite.json',O,complement=True)            #microsatellites
+    #    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_segmental_dups.json',O,complement=True)             #segmental dups
+    #    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_simple_repeats.json',O,complement=True)             #simple repeats
+    #    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_repeat_masker.json',O,complement=True)        #repeat masker tracks
+        print('merging the svmask regions')
+        start = time.time()
+        R = ru.flatten_mask_regions(R,O,complement=False)                                       #single IRanges
+        stop = time.time()
+        print('svmask regions merged in %s sec'%(round(stop-start,2)))
+        #mask these regions------------------------------------------------------------------------------------
     k,flt,f_id,m_id = 0,0,-1,1             #k=true_id,flt=filter 0 is .,PASS,f_id=fusorSV_id,m_id=metaSV_id
     exclude_callers = stage_exclude_list                 #exclude caller options put any id here to exclude
     B = {t:[1,100,250,500,1000,5000,10000,50000,100000,1000000] for t in range(0,8)}
