@@ -14,7 +14,7 @@ import fusorsv.fusor_utils as fusor
 
 des = """
 FusorSV - A Data Fusion Method for Multi Source (VCF4.0+) Structural Variation Analysis
-Timothy James Becker, PhD candidate, UCONN 05/25/2016-06/03/2018\n version="""+fusor.fu.__version__
+Timothy James Becker, PhD candidate, UCONN 05/25/2016-06/05/2018\n version="""+fusor.fu.__version__
 parser = argparse.ArgumentParser(description=des,formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument('-r', '--ref_path',type=str, help='reference fasta needed to write vcf or g1k output files\t[None]')
 des = """
@@ -35,7 +35,6 @@ parser.add_argument('--min_g',type=float,help='minimum group expectation contrib
 parser.add_argument('--over_m',type=float,help='overlap allowed before removal in merge step\t[0.0]')
 parser.add_argument('--pre_cluster',action='store_true', help='cluster the calls for all samples first\t[False]')
 parser.add_argument('--brkpt_smoothing',action='store_true', help='brkpt_smoothing algo\t[False]')
-parser.add_argument('--ucsc_filter',action='store_true', help='apply stringent UCSC filter tracks\t[False]')
 stage_mapping = """
 1:1 mapping of caller ids to stage names (and back):
 stage_map_json_file -> {0:'True',-1:'fusorSV',1:'MetaSV',4:'BreakDancer',9:'cnMOPS',10:'CNVnator',
@@ -48,7 +47,7 @@ parser.add_argument('-F', '--sample_folder_exclude',type=str,help='comma seperat
 parser.add_argument('-M', '--cluster_overlap',type=float,help='reciprocal overlap needed for clustering\t[0.5]')
 parser.add_argument('-L', '--lift_over',type=str,help='liftover chain file path or default\t[./data/hg19ToHg38.over.chain.gz]')
 parser.add_argument('-C', '--clean', action='store_true',help='keep all kfold run data and print extra details\t[False]')
-parser.add_argument('-T', '--test_libs', action='store_true', help='test the installation libraries\t[False]')
+parser.add_argument('-T', '--test_libs', action='store_true', help='test the installation libraries and print version\t[False]')
 args = parser.parse_args()
 
 if args.test_libs: #library tester should load all imports here
@@ -57,7 +56,7 @@ if args.test_libs: #library tester should load all imports here
     F = fu.LR_no_idx(x1,x2)
     T = [49,151,50,50]
     if all([T[i]==(F[i][0][1]-F[i][0][0]) for i in range(len(T))]):
-        print('fusion_utils.so and bindings are functional!')
+        print('fusion_utils.so and bindings are functional!\nversion='+fu.__version__)
     else:
         print('error with library imports, check your installation')
     quit(0)
@@ -124,8 +123,8 @@ if args.lift_over is not None:
 else: lift_over = None
 #load a user defined stage mapping id or use the one provided
 if args.stage_map_json_file is not None:
-    callers= ru.get_stage_map(args.stage_map_json_file)
-    if callers == {}:
+    callers= ru.get_stage_map(args.stage_map_json_file) #user can supply a seperate stage map
+    if callers == {}:                                   #-1 is reserved for FusorSV and 0 for true
         callers = ru.get_stage_map(ru.get_local_path('stage_map.json'))
 else:
     callers = ru.get_stage_map(ru.get_local_path('stage_map.json'))
@@ -308,6 +307,7 @@ if __name__ == '__main__':
     if not os.path.exists(out_dir+'/vcf/'):           os.makedirs(out_dir+'/vcf/')
     if not os.path.exists(out_dir+'/svul/'):          os.makedirs(out_dir+'/svul/')
     if not os.path.exists(out_dir+'/models/'):        os.makedirs(out_dir+'/models/')
+    if not os.path.exists(out_dir+'/meta/'):          os.makedirs(out_dir+'/meta/')
     if not os.path.exists(out_dir+'/visual/'):        os.makedirs(out_dir+'/visual/')
     if not os.path.exists(out_dir+'/visual/bed/'):    os.makedirs(out_dir+'/visual/bed/')
     files = glob.glob(in_dir+'*') #get all sample directories
@@ -320,24 +320,18 @@ if __name__ == '__main__':
     #snames,samples = snames[0:2],samples[0:2] #testing line
     
     print('processing samples %s\n for chroms %s'%(samples,chroms))
-    coordinate_offset_json = ref_path.rsplit('.fa')[0]+'_coordinates.json'
-    if not os.path.isfile(coordinate_offset_json):
+    coordinate_offset_json = ref_path.rsplit('/')[-1].rsplit('.fa')[0]+'_coordinates.json'
+    if not os.path.isfile(out_dir+'/meta/'+coordinate_offset_json):
         print('making a new coordinate offset json file')
-        ru.write_coordinate_offsets(ref_path,coordinate_offset_json)
-    O = ru.get_coordinate_offsets(coordinate_offset_json)    #load the reference offset map
-    R = []
+        ru.write_coordinate_offsets(ref_path,out_dir+'/meta/'+coordinate_offset_json)
+    O = ru.get_coordinate_offsets(out_dir+'/meta/'+coordinate_offset_json) #must have a valid offset map
+    R = []                                                                 #human callers work better with svmask
     if args.sv_mask is not None: #None if no mask desired
-        sv_mask_json = args.sv_mask.rsplit('.bed')[0]+'_svmask.json'
-        if not os.path.exists(sv_mask_json):
-            ru.bed_mask_to_json_mask(args.sv_mask,sv_mask_json)
+        sv_mask_json = args.sv_mask.rsplit('/')[-1].rsplit('.bed')[0]+'_svmask.json'
+        if not os.path.exists(out_dir+'/meta/'+sv_mask_json):
+            ru.bed_mask_to_json_mask(args.sv_mask,out_dir+'/meta/'+sv_mask_json)
         #mask these regions------------------------------------------------------------------------------------
-        R += ru.get_mask_regions(sv_mask_json,O)               #svmask from ref complexity
-    #    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_known_genes.json',O)          #known gene locations
-    #    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_gap.json',O,complement=True)                      #gaps in assembly
-    #    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_microsatellite.json',O,complement=True)            #microsatellites
-    #    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_segmental_dups.json',O,complement=True)             #segmental dups
-    #    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_simple_repeats.json',O,complement=True)             #simple repeats
-    #    R += ru.get_mask_regions('human_g1k_v37_decoy_ucsc_repeat_masker.json',O,complement=True)        #repeat masker tracks
+        R += ru.get_mask_regions(out_dir+'/meta/'+sv_mask_json,O)               #svmask from ref complexity
         print('merging the svmask regions')
         start = time.time()
         R = ru.flatten_mask_regions(R,O,complement=False)                                       #single IRanges
@@ -360,9 +354,9 @@ if __name__ == '__main__':
     partition_path = out_dir+'/svul/'
     total_partitions = len(glob.glob(partition_path+'*.pickle.gz'))
     
-    #entry for check-------------------------------------
+    #entry for testing-------------------------------------
     #c = fusor.check_sample_full(samples,-2,-3,O,R,chroms,types=[2,3,5],flt=0,r=0.9,self_merge=True)
-    #entry for check------------------------------------
+    #entry for testing------------------------------------
 
     #||||||||||||||||||||||||||||||||||||||BY SAMPLE|||||||||||||||||||||||||||||||||||||||||||||
     #[1] read, parse, structure, select, partition and write out data for each sample if not done
