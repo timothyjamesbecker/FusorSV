@@ -9,7 +9,7 @@ import math
 import numpy as np
 cimport numpy as np
 cimport cython
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 # read all rle encoded gzip compressed freq files from a glob directory root
 @cython.boundscheck(False)
 @cython.nonecheck(False)

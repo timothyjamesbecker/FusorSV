@@ -2,7 +2,7 @@ import re
 import numpy as np
 import fusion_utils as fu
 
-#raw VCF reader that provides similair VCF reading function as HTSeq
+#raw VCF reader that provides similar VCF reading function as HTSeq
 #VCF_CHR=0,VCF_POS=1,VCF_ID=2,VCF_REF=3,VCF_ALT=4,VCF_QUAL=5,VCF_FILT=6,VCF_INFO=7,VCF_FORMAT=8,VCF_SAMPLE=9
 def VCF_Reader(vcf_path):
     data,header,raw,i = [],[],[],0
@@ -16,7 +16,7 @@ def VCF_Reader(vcf_path):
                 i += 1
     return data
 
-class VariantCall: #:::TO DO::: can move all the methods no into this structure
+class VariantCall:
     def __init__(self,row):
         r = row + ['' for i in range(10-len(row))]
         self.chrom      = r[0]
@@ -28,7 +28,7 @@ class VariantCall: #:::TO DO::: can move all the methods no into this structure
         self.filter     = r[6]
         self.info       = r[7]
         self.format     = r[8]
-        self.gt         = r[9]
+        self.gt         = r[9:]
     def __enter__(self):
         return self
 
@@ -50,11 +50,13 @@ class SVU:
         self.id     = vc.id             #string
         self.repair_id()
         self.ref    = vc.ref            #string
-        self.repair_ref()        #can get from fasta
+        self.repair_ref()               #can get from fasta
         self.alt    = vc.alt            #string
         self.qual   = vc.qual           #string initially
         self.filter = vc.filter.upper() #enforce uppercase
         self.info   = vc.info.upper()   #enforce uppercase
+        self.format = vc.format
+        self.gt     = vc.gt
         #more complex repairs and parsing to populate the object
         self.repair_info()              #clean out any wierd delimiters...
         self.parse_end()         #unint self.end 
@@ -214,7 +216,6 @@ class SVU:
                 
     #using the .bam file, repairs the VCF to have the alternate consensus string for reads mapped
     def repair_alt(self):
-        #this will have to wait a bit using pysam/pysamstats
         if type(self.alt) is list: self.alt = ''.join(self.alt)
     
     def repair_qual(self):
@@ -245,18 +246,34 @@ class SVU:
         return filters[f]
         
     #return a searchable dict of preprocessed and cleaned values
-    def as_dict(self):
+    def as_dict(self,short=True):
         alt = self.alt
-        if len(alt) > 0: alt = alt[0]
-        return {'chrom':self.chrom,'pos':self.pos,'end':self.end,
-                'ref':self.ref,'alt':alt,'qual':self.qual,'id':self.id,
-                'filter':self.filters(self.filter),'svtype':self.svtypes(self.svtype),
-                'svlen':self.svlen,'info':self.info}
+        if short and len(alt) > 0:
+            alt = alt[0]
+            return {'chrom':self.chrom,'pos':self.pos,'end':self.end,
+                    'ref':self.ref,'alt':alt,'qual':self.qual,'id':self.id,
+                    'filter':self.filters(self.filter),'svtype':self.svtypes(self.svtype),
+                    'svlen':self.svlen,'info':self.info}
+        else:
+            return {'chrom': self.chrom, 'pos': self.pos, 'end': self.end,
+                    'ref': self.ref, 'alt': alt, 'qual': self.qual, 'id': self.id,
+                    'filter': self.filters(self.filter), 'svtype': self.svtypes(self.svtype),
+                    'svlen': self.svlen, 'info': self.info, 'format': self.format,
+                    'gt':self.gt}
 
-    def as_vcf_row(self):
-        R = ['chrom','pos','id','ref','alt','qual','filter','info']
-        D = self.as_dict()
-        return [D[r] for r in R]
+    def as_vcf_row(self,short=True):
+        if short:
+            D = self.as_dict(True)
+            R = ['chrom', 'pos', 'id', 'ref', 'alt', 'qual', 'filter', 'info']
+            V = [D[r] for r in R]
+        else:
+            D = self.as_dict(False)
+            R = ['chrom', 'pos', 'id', 'ref', 'alt', 'qual', 'filter', 'info']
+            V = [D[r] for r in R]
+            if D['format'] != '' and D['gt'] != '':
+                if type(D['gt']) is list: V += [D['format']]+D['gt']
+                else:                     V += [D['format'],D['gt']]
+        return V
     
     #TO Do fix the Cx Cy desingnation for TRA, ITX,CTX,BND type SVs
     def parse_vcfu(self):

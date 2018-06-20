@@ -1043,22 +1043,50 @@ def write_tigra_ctg_map(M,tigra_tsv_path,t_id=38):
 
 #TO DO this will need to be updated once the final data structure is set
 #construct a filtered SVD of FLTR==PASS
-def construct_svult(vcr,chroms,offset_map,s_id,flt=0,upper=int(500E3)):
+# def construct_svult(vcr,chroms,offset_map,s_id,flt=0,upper=int(500E3)):
+#     sx,vc_i,vx,k,j = {},{},[],[],0 #filtered container, and j is the originating row
+#     for vc in vcr: #iterate on the variant call record
+#         vx += [structural_variant_unit.SVU(vc,offset_map)]
+#         if vx[-1].chrom in chroms and vx[-1].filter >= flt and vx[-1].svlen < upper:
+#             sx[tuple(vx[-1].svu[0])] = j
+#             #if len(vx[-1].svu)>1:
+#             #   sx[tuple(vx[-1].svu[1])] = j
+#         j += 1
+#     svua = np.zeros((len(sx),7),dtype='u4')
+#     k = sorted(sx.keys()) #sorted svua key (x1,x2,t,y1,y2,wx,wy):j for row
+#     for i in range(len(k)):
+#         svua[i] = k[i]     #sorted, unique entries
+#         vc_i[i] = sx[k[i]] #get j back
+#     svult = {}
+#     types = sorted(list(set(list(svua[:,2]))))
+#     for t in types:
+#         l = np.where(svua[:,2]==t)[0]
+#         L = []
+#         for i in l:
+#             x = list(svua[i])
+#             L += [x[0:3]+[[[x[3],x[4]]],np.float64(x[5]),np.float64(x[6]),{s_id:{vc_i[i]}}]] #build it out
+#         svult[t] = L
+#     return svult,vx
+
+def construct_svult(vcr,chroms,offset_map,s_id,vcf_flt=0,
+                    types=None,lower=int(1E0),upper=int(250E6)):
     sx,vc_i,vx,k,j = {},{},[],[],0 #filtered container, and j is the originating row
     for vc in vcr: #iterate on the variant call record
-        vx += [structural_variant_unit.SVU(vc,offset_map)]
-        if vx[-1].chrom in chroms and vx[-1].filter >= flt and vx[-1].svlen < upper:
-            sx[tuple(vx[-1].svu[0])] = j
-            #if len(vx[-1].svu)>1:
-            #   sx[tuple(vx[-1].svu[1])] = j 
-        j += 1
+        sv = structural_variant_unit.SVU(vc,offset_map)
+        if types is not None and sv.svtype in types:
+            vx += [sv]
+            if vx[-1].chrom in chroms and vx[-1].filter >= vcf_flt and \
+                            vx[-1].svlen > lower and vx[-1].svlen < upper:
+                sx[tuple(vx[-1].svu[0])] = j
+            j += 1
     svua = np.zeros((len(sx),7),dtype='u4')
     k = sorted(sx.keys()) #sorted svua key (x1,x2,t,y1,y2,wx,wy):j for row
     for i in range(len(k)):
         svua[i] = k[i]     #sorted, unique entries
         vc_i[i] = sx[k[i]] #get j back
     svult = {}
-    types = sorted(list(set(list(svua[:,2]))))
+    if types is None:
+        types = sorted(list(set(list(svua[:,2]))))
     for t in types:
         l = np.where(svua[:,2]==t)[0]
         L = []
@@ -1077,15 +1105,29 @@ def print_svult(C):
             
 #given a bash type wildcard glob path, reads the vcf as svult
 #do a flt param map for each caller id =>{s_id:flt_val}
-def vcf_glob_to_svultd(path_glob,chroms,offset_map,flt=0,flt_exclude=[]):        
+# def vcf_glob_to_svultd(path_glob,chroms,offset_map,flt=0,flt_exclude=[]):
+#     vcfs,S,V = glob.glob(path_glob),{},{}
+#     for vcf in vcfs:
+#         vcr = structural_variant_unit.VCF_Reader(vcf) #uses
+#         s_id = id_trim(vcf)
+#         if s_id in flt_exclude:
+#             S[s_id],V[s_id] = construct_svult(vcr,chroms,offset_map,s_id,-1)
+#         else:
+#             S[s_id],V[s_id] = construct_svult(vcr,chroms,offset_map,s_id,flt)
+#     return S,V
+
+def vcf_glob_to_svultd(path_glob,chroms,offset_map,vcf_flt=0,flt_exclude=[],caller_exclude=[],
+                       types=None,lower=int(1E1),upper=int(250E6)):
     vcfs,S,V = glob.glob(path_glob),{},{}
     for vcf in vcfs:
-        vcr = structural_variant_unit.VCF_Reader(vcf) #uses 
         s_id = id_trim(vcf)
-        if s_id in flt_exclude:
-            S[s_id],V[s_id] = construct_svult(vcr,chroms,offset_map,s_id,-1)
-        else:
-            S[s_id],V[s_id] = construct_svult(vcr,chroms,offset_map,s_id,flt)
+        if not s_id in caller_exclude:
+            vcr = structural_variant_unit.VCF_Reader(vcf) #uses
+            s_id = id_trim(vcf)
+            if s_id in flt_exclude:
+                S[s_id],V[s_id] = construct_svult(vcr,chroms,offset_map,s_id,-1,types,lower,upper)
+            else:
+                S[s_id],V[s_id] = construct_svult(vcr,chroms,offset_map,s_id,vcf_flt,types,lower,upper)
     return S,V
 
 #given a vcf with SVCP naming convention, trim to an int value

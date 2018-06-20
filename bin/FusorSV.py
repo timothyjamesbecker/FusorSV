@@ -14,7 +14,7 @@ import fusorsv.fusor_utils as fusor
 
 des = """
 FusorSV - A Data Fusion Method for Multi Source (VCF4.0+) Structural Variation Analysis
-Timothy James Becker, PhD candidate, UCONN 05/25/2016-06/05/2018\n version="""+fusor.fu.__version__
+Timothy James Becker, PhD candidate, UCONN 05/25/2016-06/19/2018\n version="""+fusor.fu.__version__
 parser = argparse.ArgumentParser(description=des,formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument('-r', '--ref_path',type=str, help='reference fasta needed to write vcf or g1k output files\t[None]')
 des = """
@@ -34,7 +34,8 @@ parser.add_argument('--obs',type=int,help='number of observations needed per bin
 parser.add_argument('--min_g',type=float,help='minimum group expectation contribution\t[0.0]')
 parser.add_argument('--over_m',type=float,help='overlap allowed before removal in merge step\t[0.0]')
 parser.add_argument('--pre_cluster',action='store_true', help='cluster the calls for all samples first\t[False]')
-parser.add_argument('--brkpt_smoothing',action='store_true', help='brkpt_smoothing algo\t[False]')
+parser.add_argument('--smoothing',action='store_true', help='brkpt_smoothing algo\t[False]')
+parser.add_argument('--detail',action='store_true',help='provide a more detailed output\t[False]')
 stage_mapping = """
 1:1 mapping of caller ids to stage names (and back):
 stage_map_json_file -> {0:'True',-1:'fusorSV',1:'MetaSV',4:'BreakDancer',9:'cnMOPS',10:'CNVnator',
@@ -48,6 +49,8 @@ parser.add_argument('-M', '--cluster_overlap',type=float,help='reciprocal overla
 parser.add_argument('-L', '--lift_over',type=str,help='liftover chain file path or default\t[./data/hg19ToHg38.over.chain.gz]')
 parser.add_argument('-C', '--clean', action='store_true',help='keep all kfold run data and print extra details\t[False]')
 parser.add_argument('-T', '--test_libs', action='store_true', help='test the installation libraries and print version\t[False]')
+parser.add_argument('--no_merge',action='store_true',help='set to not merge output for large sample applications\t[False]')
+parser.add_argument('--merge',action='store_true',help='perform a merge and exit for large sample applications\t[False]')
 args = parser.parse_args()
 
 if args.test_libs: #library tester should load all imports here
@@ -65,6 +68,8 @@ if args.in_dir is not None:
     if not os.path.exists(in_dir):
         print('VCF input path does not exist!')
         raise IOError
+elif args.merge:
+    print('final FusorSV VCF merge starting')
 else:
     print('no VCF input')
     raise IOError
@@ -73,6 +78,7 @@ if args.out_dir is not None:
 else:
     print('no output directory specified')
     raise IOError
+
 if args.apply_fusion_model_path is not None:
     if args.apply_fusion_model_path.upper()=='DEFAULT':
         apply_fusion_model_path =ru.get_local_path('models/human_g1k_v37_decoy.P3.pickle.gz')
@@ -138,6 +144,24 @@ if args.stage_exclude_list is not None:
         print('error parsing comma seperated list, using defaults')
         print('defaults stage exclude list is: %s'%stage_exclude_list)
 
+#seperate merging out batched FusorSV call VCFs
+vcf_glob = out_dir+'/vcf/*_S-1.vcf' #fusorSV VCFS only
+if args.merge:
+    tst_str = 'FULL'
+    ref_seq = {'.'.join(ref_path.rsplit('/')[-1].rsplit('.')[0:-1]):ru.read_fasta(ref_path)}
+    print('cluster merging tool processing samples')
+    out_vcf  = out_dir+'/vcf/all_samples_genotypes.'+tst_str+'.vcf'
+    print('completed = %s'%su.fusorSV_vcf_multi_sample_merge(vcf_glob,out_vcf,
+                                                             ref_seq[ref_seq.keys()[0]],
+                                                             overlap=cluster_overlap))
+    if lift_over is not None:
+        #now do a liftover to partition the calls with a possible new reference space
+        su.fusorSV_vcf_liftover_samples(out_dir+'/vcf/all_samples_genotypes*.vcf*',ref_path,lift_over) #default is on
+    n_stop = time.time()
+    print(''.join([':::' for i in range(40)]))
+    exit(0)
+# -r -i -o -M 0.5 -L --merge
+
 def get_observations(in_dir): #will look for .tar.gz file or glob the uncompressed folder
     #this require refactoring out HTSeq for tar archive to gzip support
     obs = []
@@ -154,7 +178,9 @@ def partition_call_sets(sample,k,O,R,B,chroms,flt,flt_exclude,caller_exclude):
     sname = sample[sample.rfind('/')+1:]                      #extract sample identifier
     print('reading sample %s'%sname)
     sname_partition_path = out_dir+'/svul/'+sname                            #build path
-    S,V = su.vcf_glob_to_svultd(sample+'/*vcf',chroms,O,flt=flt,flt_exclude=flt_exclude)
+    S,V = su.vcf_glob_to_svultd(sample+'/*vcf',chroms,O,types=B.keys(),
+                                vcf_flt=flt,flt_exclude=flt_exclude,
+                                caller_exclude=caller_exclude)
     S = su.filter_call_sets2(S,R,exclude=flt_exclude)                    #filter svmasks
     Q = fusor.slice_samples([[sname,S]])                                         #legacy
     P = fusor.partition_sliced_samples(Q,B,exclude=caller_exclude)            #partition
@@ -197,23 +223,34 @@ def prior_model_partition(snames,t,b,k,callers,caller_exclude,min_g,brkpt_smooth
 #[3a] Fit the Model Partition----------------------------------------------------------------------------
 
 #[3b] Posterior Estimation Partition---------------------------------------------------------------------
-def post_model_partition(apply_fusion_model_path,snames,t,b,k,callers,caller_exclude,min_g):
-    print('starting posterior estimate on partition:\tt=%s\tb=%s'%(t,b))
+def post_model_partition(apply_fusion_model_path,snames,t,b,k,callers,caller_exclude,min_g,smoothing):
     start = time.time()
     #[1] load prior model values----------------------------------------
     B,J,D,E,alpha,n,K = fusor.import_fusion_model(apply_fusion_model_path)     #import the existing model
-    #[2] load new input data partitions
-    P = fusor.read_partitions_by_caller(out_dir+'/svul/',callers,caller_exclude,t,b,False)   #all samples
-    J_new = fusor.all_samples_all_pairs_magnitudes(P,snames)                 #pool all feature magnitudes   
-    #[3] construct the posterior estimator using:        the prior data, new data and imputed true row==k
-    J_post = fusor.additive_magnitude_smoothing(J,J_new,k)        #k is used to swap a row J_prime into J
-    D_post,NN_post = fusor.pooled_distance(J_post)                      #get the new data distance matrix
-    W_post = fusor.all_group_weights(J_post,k,mode='j')  #calculate the pooled D,NN and all group weights
-    E_post = fusor.select_groups(W_post,min_g)                         #gamma is a group selection cutoff 
-    alpha_post = fusor.post_filter_cutoff(E,E_post,alpha)                       #updated filter estimates
-    stop = time.time()
-    print('posterior estimate on partition:\tt=%s\tb=%s\t%s sec\talpha=%s'%(t,b,round(stop-start,2),
-                                                                            alpha_post[t][b]))
+    if smoothing:
+        print('starting posterior estimate on partition:\tt=%s\tb=%s'%(t,b))
+        #[2] load new input data partitions
+        P = fusor.read_partitions_by_caller(out_dir+'/svul/',callers,caller_exclude,t,b,False)   #all samples
+        J_new = fusor.all_samples_all_pairs_magnitudes(P,snames)                 #pool all feature magnitudes
+        #[3] construct the posterior estimator using:        the prior data, new data and imputed true row==k
+        J_post = fusor.additive_magnitude_smoothing(J,J_new,k)        #k is used to swap a row J_prime into J
+        D_post,NN_post = fusor.pooled_distance(J_post)                      #get the new data distance matrix
+        W_post = fusor.all_group_weights(J_post,k,mode='j')  #calculate the pooled D,NN and all group weights
+        E_post = fusor.select_groups(W_post,min_g)                         #gamma is a group selection cutoff
+        alpha_post = fusor.post_filter_cutoff(E,E_post,alpha)                       #updated filter estimates
+        stop = time.time()
+        print('posterior estimate on partition:\tt=%s\tb=%s\t%s sec\talpha=%s'%(t,b,round(stop-start,2),
+                                                                                alpha_post[t][b]))
+    else:
+        print('using prior estimate on partition:\tt=%s\tb=%s'%(t,b))
+        J_post = {t:{b:J[t][b]}}
+        D_post = {t:{b:D[t][b]}}
+        E_post = {t:{b:E[t][b]}}
+        alpha_post = {t:{b:alpha[t][b]}}
+        K[t] = {t:{b:K[t][b]}}
+        stop = time.time()
+        print('prior estimate on partition:\tt=%s\tb=%s\t%s sec\talpha=%s' % (t,b,round(stop-start,2),
+                                                                              alpha_post[t][b]))
     return [(t,b),J_post,D_post,E_post,alpha_post,K]
 #[3b] Posterior Estimation Partition--------------------------------------------------------------------
 
@@ -248,11 +285,15 @@ def apply_model_to_samples(sample,ref_path,chroms,types,bins,callers,O,
     else:#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::                                                           
         if verbose: print('loading base and posterior estimate partitions for %s'%sname)        
         B,J,D,E,alpha,n,K = fusor.import_fusion_model(apply_fusion_model_path)          #import prior model
-        B,J_post,D_post,E_post,alpha_post,n_post,K = fusor.import_fusion_model(model_path) #import new data
+        if smoothing:
+            B,J_post,D_post,E_post,alpha_post,n_post,K = fusor.import_fusion_model(model_path) #import new data
         P = fusor.read_partitions_by_sample(partition_path,sname)            #read all partitions for sname
         Q = fusor.unpartition_sliced_samples(P)                              #unpartition for merging later
-        A = fusor.pileup_group_by_sample(P,E,(k,))                    #projection of all calls for a sample                    
-        F = fusor.filter_pileup_by_sample(A,alpha,E_post,leave_in=False)         #filter cutoff in the mode
+        A = fusor.pileup_group_by_sample(P,E,(k,))                    #projection of all calls for a sample
+        if smoothing:
+            F = fusor.filter_pileup_by_sample(A,alpha,E_post,leave_in=False)  # filter cutoff in the mode
+        else:
+            F = fusor.filter_pileup_by_sample(A,alpha,E,leave_in=False)  # filter cutoff in the mode
         if smoothing:
             #now do breakpoint smoothing algorithm---------------------------------------------------------
             F = fusor.best_smooth_brkpt_samples(F,K,P)
@@ -318,7 +359,7 @@ if __name__ == '__main__':
         samples += [i]
         snames  += [i.rsplit('/')[-1]]      
     #snames,samples = snames[0:2],samples[0:2] #testing line
-    
+
     print('processing samples %s\n for chroms %s'%(samples,chroms))
     coordinate_offset_json = ref_path.rsplit('/')[-1].rsplit('.fa')[0]+'_coordinates.json'
     if not os.path.isfile(out_dir+'/meta/'+coordinate_offset_json):
@@ -360,7 +401,13 @@ if __name__ == '__main__':
 
     #||||||||||||||||||||||||||||||||||||||BY SAMPLE|||||||||||||||||||||||||||||||||||||||||||||
     #[1] read, parse, structure, select, partition and write out data for each sample if not done
-    if total_partitions<1: #skip this step if you have already read and partitioned the data set      
+    snames_svuls  = {}
+    written_svuls = glob.glob(partition_path+'*.pickle.gz')
+    for svul in written_svuls:
+        sname = svul.rsplit('/')[-1].rsplit('_')[0]
+        if snames_svuls.has_key(sname): snames_svuls[sname] += 1
+        else:                           snames_svuls[sname]  = 1
+    if total_partitions<1 or len(set(snames).difference(set(snames_svuls.keys())))>1:
         print('reading, parsing, partitioning and writing sample VCFs')
         start = time.time()
         p1 = mp.Pool(processes=cpus)
@@ -434,14 +481,15 @@ if __name__ == '__main__':
             model_path = out_dir+'/models/'+'.'.join(ref_path.rsplit('/')[-1].rsplit('.')[0:-1])+\
                          '.'+in_dir[0:-1].rsplit('/')[-1]+trn_str+'.post.pickle.gz'
             #now look at the new data and make a model for it, minus the true (estimate it)
-            if not os.path.exists(model_path): #write a model if it hasn't been done yet
+            if not os.path.exists(model_path) and args.smoothing: #write a model if it hasn't been done yet
                 start = time.time()            #now in || for faster performance and less RAM
                 p1 = mp.Pool(processes=cpus)        
                 for t in types:
                     for b in range(len(B[t])-1):
                         p1.apply_async(post_model_partition,
                                        args=(apply_fusion_model_path,snames,t,b,k,
-                                             callers,exclude_callers,min_g),
+                                             callers,exclude_callers,min_g,
+                                             args.smoothing),
                                        callback=collect_results)
                         time.sleep(0.5)
                 p1.close()
@@ -453,13 +501,13 @@ if __name__ == '__main__':
                 gc.collect()
                 stop = time.time()
                 print('finished estimation in %s sec'%round(stop-start,2))    
-                J_post,D_post,E_post,alpha_post,n_post,K = fusor.assemble_model(L)
+                J_post,D_post,E_post,alpha_post,n_post,K = fusor.assemble_model(L,args.smoothing)
     
                 fusor.export_fusion_model(B,J_post,D_post,E_post,alpha_post,len(snames),K,model_path)
                 L = []
                 gc.collect()
             else: #can clip this one the || sample application is completed
-                B,J_post,D_post,E_post,alpha_post,n_post,K = fusor.import_fusion_model(model_path)
+                B,J_post,D_post,E_post,alpha_post,n_post,K = fusor.import_fusion_model(apply_fusion_model_path)
         #||||||||||||||||||||||||||||||||||||||BY PARTITION||||||||||||||||||||||||||||||||||||||||||
               
         #||||||||||||||||||||||||||||||||||||||BY SAMPLE|||||||||||||||||||||||||||||||||||||||||||||
@@ -474,7 +522,7 @@ if __name__ == '__main__':
             p1.apply_async(apply_model_to_samples,
                            args=(sample,ref_path,chroms,types,bins,callers,O,
                                  model_path,apply_fusion_model_path,k,f_id,
-                                 over_m,0.5,args.brkpt_smoothing,True,True,6),
+                                 over_m,0.5,args.smoothing,args.detail,args.detail,6),
                            callback=collect_results)
             time.sleep(0.5)
         p1.close()
@@ -522,20 +570,20 @@ if __name__ == '__main__':
         #-------------------------------------------------------------------
 
         vcf_glob = out_dir+'/vcf/*_S-1.vcf' #fusorSV VCFS only
-        # now cluster the calls
-        if cluster_overlap > 0.0:
-            print('cluster merging tool processing samples')
-            out_vcf  = out_dir+'/vcf/all_samples_genotypes.'+tst_str+'.vcf'
-            print('completed = %s'%su.fusorSV_vcf_multi_sample_merge(vcf_glob,out_vcf,
-                                                                     ref_seq[ref_seq.keys()[0]],
-                                                                     overlap=cluster_overlap))
-        if lift_over is not None:
-            #now do a liftover to partition the calls with a possible new reference space
-            su.fusorSV_vcf_liftover_samples(out_dir+'/vcf/all_samples_genotypes*.vcf*',ref_path,lift_over) #default is on
-        if n_cross>1 and cross_fold>1 and not args.clean: #can clean up the VCF and model files...
-            print('cleaning interim data for run %s out of...runs=%s\tkfold=%s'%(n_k, n_cross,cross_fold))
-            os.remove(model_path)
-            for vcf in glob.glob(vcf_glob): os.remove(vcf)
-        n_stop = time.time()
-        print('run %s in %s sec'%(n_k,round(n_stop-n_start,2)))
-        print(''.join([':::' for i in range(40)]))
+        if not args.no_merge:
+            if cluster_overlap > 0.0:
+                print('cluster merging tool processing samples')
+                out_vcf  = out_dir+'/vcf/all_samples_genotypes.'+tst_str+'.vcf'
+                print('completed = %s'%su.fusorSV_vcf_multi_sample_merge(vcf_glob,out_vcf,
+                                                                         ref_seq[ref_seq.keys()[0]],
+                                                                         overlap=cluster_overlap))
+            if lift_over is not None:
+                #now do a liftover to partition the calls with a possible new reference space
+                su.fusorSV_vcf_liftover_samples(out_dir+'/vcf/all_samples_genotypes*.vcf*',ref_path,lift_over) #default is on
+            if n_cross>1 and cross_fold>1 and not args.clean: #can clean up the VCF and model files...
+                print('cleaning interim data for run %s out of...runs=%s\tkfold=%s'%(n_k, n_cross,cross_fold))
+                os.remove(model_path)
+                for vcf in glob.glob(vcf_glob): os.remove(vcf)
+            n_stop = time.time()
+            print('run %s in %s sec'%(n_k,round(n_stop-n_start,2)))
+            print(''.join([':::' for i in range(40)]))
