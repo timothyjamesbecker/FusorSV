@@ -164,9 +164,10 @@ which is then followed by a single merge step (omit the first line when using no
 docker run -v ~/data:/data -it timothyjamesbecker/fusorsv \
 FusorSV.py \
 -r /data/ref/human_g1k_v37_decoy.fa \
--m /path_to_FusorSV/data/human_g1k_v37_decoy.bed \
 -o /data/meta_caller_RC1_result/ \
 --merge \
+-M 0.5 \
+-L DEFAULT
 ```
 
 
