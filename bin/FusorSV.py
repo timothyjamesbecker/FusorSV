@@ -24,7 +24,7 @@ parser.add_argument('-i', '--in_dir',type=str, help=des)
 parser.add_argument('-a', '--ctg_dir',type=str,help='assembly contig directory\t[None]')
 parser.add_argument('-c', '--chroms',type=str,help='comma seperated chrom listing\t[1,2,...22,X,Y,MT]')
 parser.add_argument('-o', '--out_dir',type=str, help='outputdirectory to save ...bam.bai/ into\t[None]')
-parser.add_argument('-m', '--sv_mask',type=str,help='user supplied svmask file in BED3 format\t[None]')
+parser.add_argument('-m', '--sv_mask',type=str,help='user supplied svmask file in BED3 or internal json format\t[None]')
 parser.add_argument('-f', '--apply_fusion_model_path',type=str, help='apply a fusion model *.pickle.gz')
 parser.add_argument('-p', '--cpus',type=int,help='number of cores to use in ||\t[1]')
 parser.add_argument('--k_fold',type=int,help='k_fold cross validation, k=0 implies no validation\t[0]')
@@ -368,9 +368,12 @@ if __name__ == '__main__':
     O = ru.get_coordinate_offsets(out_dir+'/meta/'+coordinate_offset_json) #must have a valid offset map
     R = []                                                                 #human callers work better with svmask
     if args.sv_mask is not None: #None if no mask desired
-        sv_mask_json = args.sv_mask.rsplit('/')[-1].rsplit('.bed')[0]+'_svmask.json'
-        if not os.path.exists(out_dir+'/meta/'+sv_mask_json):
-            ru.bed_mask_to_json_mask(args.sv_mask,out_dir+'/meta/'+sv_mask_json)
+        if args.sv_mask.endswith('.bed'):
+            sv_mask_json = args.sv_mask.rsplit('/')[-1].rsplit('.bed')[0]+'_svmask.json'
+            if not os.path.exists(out_dir+'/meta/'+sv_mask_json):
+                ru.bed_mask_to_json_mask(args.sv_mask,out_dir+'/meta/'+sv_mask_json)
+        elif args.sv_mask.endswith('.json'):
+            ru.copy_json_mask(args.sv_mask,out_dir+'/meta/'+args.sv_mask.rsplit('/')[-1])
         #mask these regions------------------------------------------------------------------------------------
         R += ru.get_mask_regions(out_dir+'/meta/'+sv_mask_json,O)               #svmask from ref complexity
         print('merging the svmask regions')

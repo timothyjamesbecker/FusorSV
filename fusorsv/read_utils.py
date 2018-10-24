@@ -1,5 +1,6 @@
 import os
 import json
+import shutil
 import numpy as np
 import pysam
 import fusion_utils as fu 
@@ -179,6 +180,10 @@ def flatten_mask_regions(R,O,complement=False):
     return M
 
 def write_mask_regions(json_name):
+    return True
+
+def copy_json_mask(in_path,out_path):
+    shutil.copy2(in_path,out_path)
     return True
 
 def bed_mask_to_json_mask(bed_path,json_path):
