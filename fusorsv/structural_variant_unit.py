@@ -36,7 +36,7 @@ class VariantCall:
         return 0
                                                 
 class SVU:
-    def __init__(self,vc=None,offset_map=None,ref_path=None,bam_path=None,conf_split=None):
+    def __init__(self,vc=None,offset_map=None,ref_path=None,bam_path=None,conf_split=None,center_ins=True):
         #parse the less complex fields first
         self.valid_svtypes = {'SUB':0,'RPL':0,
                               'INS':1,'INS:MEI':1,'INS:ME:ALU':1,'INS:ME:L1':1,
@@ -58,16 +58,16 @@ class SVU:
         self.format = vc.format
         self.gt     = vc.gt
         #more complex repairs and parsing to populate the object
-        self.repair_info()              #clean out any wierd delimiters...
-        self.parse_end()         #unint self.end 
-        self.parse_svtype()      #string for type but could be int latter self.svtype
-        self.parse_svlen()       #uint here from self.svlen
-        self.parse_alt_chrom()   #look for alternate chrom tags in the info field
-#        self.repair_alt()       #can get from bam or local alignments
-        self.repair_qual()       #becomes float value
-        self.repair_filter()     #becomes -1,0,1
-        self.parse_conf()        #look for confidence values in the info field        
-        self.parse_svu(offset_map,conf_split)  #this is the SVU version
+        self.repair_info()          #clean out any wierd delimiters...
+        self.parse_end()            #unint self.end
+        self.parse_svtype()         #string for type but could be int latter self.svtype
+        self.parse_svlen()          #uint here from self.svlen
+        self.parse_alt_chrom()      #look for alternate chrom tags in the info field
+#        self.repair_alt()          #can get from bam or local alignments
+        self.repair_qual()          #becomes float value
+        self.repair_filter()        #becomes -1,0,1
+        self.parse_conf()           #look for confidence values in the info field
+        self.parse_svu(offset_map,conf_split,center_ins)  #this is the SVU version
         
     def __enter__(self):
         return self
@@ -274,7 +274,7 @@ class SVU:
                 if type(D['gt']) is list: V += [D['format']]+D['gt']
                 else:                     V += [D['format'],D['gt']]
         return V
-    
+
     #TO Do fix the Cx Cy desingnation for TRA, ITX,CTX,BND type SVs
     def parse_vcfu(self):
         self.vcfu = [self.chrom,self.pos,self.end,self.svtype,self.alt_chrom,self.svlen]#use chrom twice here
@@ -283,8 +283,18 @@ class SVU:
     #svu = [x1=refpos,x2=refend,t=svtype,y=[[y1,y2]]:contextual with t, wx, wy,{idx}]
     #can use d(ref,alt) metrics in the future...
     #TO DO store more than just the svlength inside the [y]
-    def parse_svu(self,O,conf_split=None):
+    def parse_svu(self,O,conf_split=None,center_ins=True):
         if conf_split is not None and conf_split:
+            if center_ins and self.svtype==1: #need the O here to get max bounds
+                ls = sorted({O[k]: k for k in O})
+                for i in range(len(ls)):
+                    if ls[i] == O[self.chrom]: break
+                max_right = ls[i + 1] - ls[i]  # chrom length
+                ref_len = (self.end - self.pos)
+                center = self.pos + abs(int(round(1.0 * ref_len / 2.0, 0)))
+                self.pos = max(center - int(round(self.svlen / 2.0, 0)), 0)
+                self.end = min(center + int(round(self.svlen / 2.0, 0)), max_right)
+
             if self.conf == [self.pos,self.pos,self.end,self.end]:
                 self.svu = [[O[self.chrom]+self.pos,O[self.chrom]+self.end,
                              self.svtype,0,0,1,1]]
@@ -295,9 +305,18 @@ class SVU:
                             [O[self.chrom]+self.conf[1],O[self.chrom]+self.conf[2],
                              self.svtype,0,0,1,1]]
         else:
+            if center_ins and self.svtype == 1:  # need the O here to get max bounds
+                ls = sorted({O[k]: k for k in O})
+                for i in range(len(ls)):
+                    if ls[i] == O[self.chrom]: break
+                max_right = ls[i+1]-ls[i]  # chrom length
+                ref_len = (self.end-self.pos)
+                center = self.pos+abs(int(round(1.0*ref_len/2.0,0)))
+                self.pos = max(center-int(round(self.svlen/2.0,0)),0)
+                self.end = min(center+int(round(self.svlen/2.0,0)),max_right)
+
             self.svu = [[O[self.chrom]+self.pos,O[self.chrom]+self.end,
                         self.svtype,0,0,1,1]]
-            
     def get_svu(self):
         return self.svu
     

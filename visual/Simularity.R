@@ -32,10 +32,10 @@ DUP <- ddply(DUP, .(C1,C2),summarize,j=mean(j)); #take averages
 INV <- data[which(data[,'type']=='INV'),c('C1','C2','bin','j')];
 INV <- ddply(INV, .(C1,C2),summarize,j=mean(j)); #take averages
 
-del_callers <- rev(c('True','cnMOPS','CNVnator','Delly','GenomeSTRiP','Hydra','Lumpy','BreakDancer'));
+del_callers <- rev(c('True','cnMOPS','CNVnator','Delly','Hydra','Lumpy','BreakDancer'));
 p1 <- ggplot(aes(x=C2,y=C1,fill=value),data=melt(DEL,id.var=c('C1','C2'))) +
 	geom_tile(color='black') +
-	scale_fill_gradient2(low='white',high='red',limit=c(0.0,1.0),name='Jaccard\nSimularity') +
+	scale_fill_gradient2(low='white',high='blue',limit=c(0.0,1.0),name='Jaccard\nSimularity') +
 	ylim(del_callers) + xlim(rev(del_callers)) +
 	theme_minimal() +
 	theme(axis.text.x = element_text(angle=90,vjust=1,size=t_size,hjust=1),axis.title.x = element_blank()) +
@@ -43,10 +43,10 @@ p1 <- ggplot(aes(x=C2,y=C1,fill=value),data=melt(DEL,id.var=c('C1','C2'))) +
 	#theme(legend.position="none") +
 	ggtitle("DEL");
 
-dup_callers <- rev(c('True','cnMOPS','CNVnator','Delly','GenomeSTRiP','Hydra','Lumpy'));
+dup_callers <- rev(c('True','cnMOPS','CNVnator','Delly','Hydra','Lumpy'));
 p2 <- ggplot(aes(x=C2,y=C1,fill=value),data=melt(DUP,id.var=c('C1','C2'))) +
 	geom_tile(color='black') +
-	scale_fill_gradient2(low='white',high='red',limit=c(0.0,1.0),name='Jaccard\nSimularity') +
+	scale_fill_gradient2(low='white',high='blue',limit=c(0.0,1.0),name='Jaccard\nSimularity') +
 	ylim(dup_callers) + xlim(rev(dup_callers)) +
 	theme_minimal() +
 	theme(axis.text.x = element_text(angle=90,vjust=1,size=t_size,hjust=1),axis.title.x = element_blank()) +
@@ -57,7 +57,7 @@ p2 <- ggplot(aes(x=C2,y=C1,fill=value),data=melt(DUP,id.var=c('C1','C2'))) +
 inv_callers <- rev(c('True','Delly','Hydra','Lumpy','BreakDancer'));
 p3 <- ggplot(aes(x=C2,y=C1,fill=value),data=melt(INV,id.var=c('C1','C2'))) +
 	geom_tile(color='black') +
-	scale_fill_gradient2(low='white',high='red',limit=c(0.0,1.0),name='Average\nBase Pair\nSimularity') +
+	scale_fill_gradient2(low='white',high='blue',limit=c(0.0,1.0),name='Average\nBase Pair\nSimularity') +
 	ylim(inv_callers) + xlim(rev(inv_callers)) +
 	theme_minimal() +
 	theme(axis.text.x = element_text(angle=90,vjust=1,size=t_size,hjust=1),axis.title.x = element_blank()) +
@@ -72,7 +72,7 @@ g_legend<-function(a.gplot){
   legend <- tmp$grobs[[leg]]
   return(legend)}
 
-lgnd<-g_legend(p1 + theme(legend.key.size=unit(1.0,'in')) + 
+lgnd<-g_legend(p1 + theme(legend.key.size=unit(0.5,'in')) + 
                theme(legend.position="right",legend.direction="horizontal",legend.text=element_text(angle=0,size=t_size)));
 	
 #svg(filename = '~/Desktop/TEMP/fusionSVU/visual/sim_matrix.svg',width=12,height=5)

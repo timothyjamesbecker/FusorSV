@@ -399,7 +399,7 @@ if __name__ == '__main__':
     total_partitions = len(glob.glob(partition_path+'*.pickle.gz'))
     
     #entry for testing-------------------------------------
-    #c = fusor.check_sample_full(samples,-2,-3,O,R,chroms,types=[2,3,5],flt=0,r=0.9,self_merge=True)
+    # c = fusor.check_sample_full(samples,-2,-3,O,R,chroms,types=[2,3,5],flt=0,r=0.9,self_merge=True)
     #entry for testing------------------------------------
 
     #||||||||||||||||||||||||||||||||||||||BY SAMPLE|||||||||||||||||||||||||||||||||||||||||||||

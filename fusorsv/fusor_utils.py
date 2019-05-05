@@ -1720,7 +1720,7 @@ def score_sample(S,k,F,self_merge=True):
 def check_sample_full(samples,s_id1,s_id2,O,R,chroms,types=[2,3,5],flt=0,r=0.5,self_merge=True,brkpts=False):
     c = {}
     for sample in samples:  
-        S,V = su.vcf_glob_to_svultd(sample+'/*vcf',chroms,O,flt=flt)
+        S,V = su.vcf_glob_to_svultd(sample+'/*vcf',chroms,O,vcf_flt=flt)
         S = su.filter_call_sets2(S,R,exclude=[])
         for t in types:
             if S[s_id1].has_key(t) and S[s_id2].has_key(t):

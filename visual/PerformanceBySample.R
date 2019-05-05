@@ -58,7 +58,7 @@ if(cross_fold){
 }
 types <- c('DEL','DUP','INV'); #dig out the interesting ones here
 #subset callers if needed for plots
-data <- data[which(data[,'caller']!='GATK' & data[,'caller']!='Tigra' & data[,'caller']!='Pindel'),];
+data <- data[which(data[,'caller']!='GATK' & data[,'caller']!='fusorSV' & data[,'caller']!='MetaSV' & data[,'caller']!='Tigra' & data[,'caller']!='Pindel'),];
 
 DEL <- data[which(data[,'type']=='DEL'),c('caller','prec','rec','f1','j','n','m')];
 DEL[,'nIm'] <- DEL[,'n']*DEL[,'prec'];
