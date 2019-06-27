@@ -1,6 +1,6 @@
 [![Build Status](https://api.travis-ci.org/timothyjamesbecker/FusorSV.svg)](https://travis-ci.com/timothyjamesbecker/FusorSV) ![GitHub All Releases](https://img.shields.io/github/downloads/timothyjamesbecker/fusorsv/total.svg)  [![DOI](https://zenodo.org/badge/68958501.svg)](https://zenodo.org/badge/latestdoi/68958501) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 # FusorSV
-(c) 2016-2018 Timothy Becker  <br> <br>
+(c) 2016-2018 Timothy Becker, paper citation: https://doi.org/10.1186/s13059-018-1404-6 <br> <br>
 A Data Fusion Method for Multi Source (VCF4.0+) Structural Variation Analysis. <br>
 Takes as input a callset or group of VCF calls made by several SV callers for one sample and applies prior knowledge encoded in a fusion model to merge together the results that provide the best merging of the input files.  The resulting VCF file can be coordinate lifted and all samples can be clustered together based on reciprocal overlap.  The output includes for every FusorSV call the caller identifier and the specific call from that caller ids input VCF that contributed to the call in addition to an expectation estimate given the prior expectations on the agreement in that call.  Prior expectations are derived by using an alternate training mode that requires a true callset be given for each training observation that is used. <br> 
 
