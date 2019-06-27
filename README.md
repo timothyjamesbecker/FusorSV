@@ -1,4 +1,4 @@
-[![Build Status](https://api.travis-ci.org/timothyjamesbecker/FusorSV.svg)](https://travis-ci.com/timothyjamesbecker/FusorSV) ![GitHub All Releases](https://img.shields.io/github/downloads/timothyjamesbecker/fusorsv/total.svg)  [![DOI](https://zenodo.org/badge/68958501.svg)](https://zenodo.org/badge/latestdoi/68958501) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Build Status](https://api.travis-ci.org/timothyjamesbecker/FusorSV.svg)](https://travis-ci.com/timothyjamesbecker/FusorSV) ![GitHub All Releases](https://img.shields.io/github/downloads/timothyjamesbecker/fusorsv/total.svg)  [![DOI](https://zenodo.org/badge/68958501.svg)](https://zenodo.org/badge/latestdoi/68958501) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)<br>
 ![Alt text](images/fusor-logo.jpg?raw=true "fusor")
 # FusorSV
 (c) 2016-2018 Timothy Becker, paper citation: https://doi.org/10.1186/s13059-018-1404-6 <br> <br>
