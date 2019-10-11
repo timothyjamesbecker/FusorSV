@@ -75,13 +75,15 @@ FusorSV.py \
 ```bash
 ls /data/vcfs/*
 
-/data/sample1:
+/data/vcfs/sample1:
 sample1_S10.vcf sample1_S17.vcf sample1_S35.vcf sample1_S9.vcf sample1_S1.vcf sample1_S38.vcf
 sample1_S11.vcf	sample1_S18.vcf	sample1_S4.vcf sample1_S0.vcf sample1_S14.vcf
 
-/data/sample2:
+/data/vcfs/sample2:
 sample2_S10.vcf sample2_S17.vcf sample2_S35.vcf sample2_S9.vcf sample2_S1.vcf sample2_S38.vcf
 sample2_S11.vcf	sample2_S18.vcf	sample2_S4.vcf sample2_S0.vcf sample2_S14.vcf
+
+-i /data/vcfs/ would pass the folder of samples to FusorSV.py correctly in this case
 ``` 
 -o or --out_dir is the path of the output directory that will be created and populated with the data partitions converted to internal Structural Variation Unit List (SVUL) form, the model that will be generated if in training mode udner models/*pickle.gz, the resulting merged VCF folder and performance metric files will be in the vcf and g1k folders (VCF is prefered and supports clustering and liftover):
 
