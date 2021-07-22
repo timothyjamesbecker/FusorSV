@@ -36,7 +36,8 @@ class VariantCall:
         return 0
                                                 
 class SVU:
-    def __init__(self,vc=None,offset_map=None,ref_path=None,bam_path=None,conf_split=None,center_ins=True):
+    def __init__(self,vc=None,offset_map=None,ref_path=None,bam_path=None,
+                 conf_split=None,center_ins=True,trim_chr=False):
         #parse the less complex fields first
         self.valid_svtypes = {'SUB':0,'RPL':0,
                               'INS':1,'INS:MEI':1,'INS:ME:ALU':1,'INS:ME:L1':1,
@@ -45,7 +46,7 @@ class SVU:
                               'CNV':4,'INV':5,'CTX':6,'TRA':6,'BND':7}
         self.ref_path = ref_path #can repair the ref consensus string
         self.bam_path = bam_path #can repair the alt consensus string
-        self.parse_chrom(vc.chrom)      #string value, trim chrom or chr to chr1->1
+        self.parse_chrom(vc.chrom,trim_chr)      #string value, trim chrom or chr to chr1->1
         self.pos    = vc.pos            #uint here
         self.id     = vc.id             #string
         self.repair_id()
@@ -88,12 +89,16 @@ class SVU:
         return v
     
     #TO DO parsing Cx and Cy into this form
-    def parse_chrom(self,chrom):
-        chrom_tag = chrom.split('CHROM')[-1]
-        chrom_tag = chrom_tag.split('CHR')[-1]
-        chrom_tag = chrom_tag.split('chrom')[-1]
-        chrom_tag = chrom_tag.split('chr')[-1]
-        self.chrom = chrom_tag
+    def parse_chrom(self,chrom,trim_chr):
+        if trim_chr:
+            chrom_tag = chrom.split('CHROM')[-1]
+            chrom_tag = chrom_tag.split('CHR')[-1]
+            chrom_tag = chrom_tag.split('chrom')[-1]
+            chrom_tag = chrom_tag.split('chr')[-1]
+            self.chrom = chrom_tag
+        else:
+            chrom_tag = chrom
+            self.chrom = chrom
         #need to fix this alt chrom later x chrom, y chrom
         self.alt_chrom = chrom_tag #did this out of the TRA,BND or INFO tags
     

@@ -107,18 +107,21 @@ def get_stage_map(json_name):
             pass
     return stage_map
 
-def write_coordinate_offsets(fasta_path,json_path):
+def write_coordinate_offsets(fasta_path,json_path,trim_chr):
     #read in the fasta lengths and then sort them by length into a json offset map
     L = get_fasta_seq_names_lens(fasta_path)
     l_i = list(np.argsort([L[k] for k in L]))[::-1] #sort by max length
     O,offset = {},0 #starts at zero
     for i in l_i:
-        chrom = L.keys()[i]
-        chrom_tag = chrom.split('CHROM')[-1]
-        chrom_tag = chrom_tag.split('CHR')[-1]
-        chrom_tag = chrom_tag.split('chrom')[-1]
-        chrom_tag = chrom_tag.split('chr')[-1]
-        O[chrom_tag] = offset
+        if trim_chr:
+            chrom = L.keys()[i]
+            chrom_tag = chrom.split('CHROM')[-1]
+            chrom_tag = chrom_tag.split('CHR')[-1]
+            chrom_tag = chrom_tag.split('chrom')[-1]
+            chrom_tag = chrom_tag.split('chr')[-1]
+            O[chrom_tag] = offset
+        else:
+            O[L.keys()[i]] = offset
         offset = offset+L[L.keys()[i]] #old + new + 1
     with open(json_path,'w') as f:
         json.dump(O,f)

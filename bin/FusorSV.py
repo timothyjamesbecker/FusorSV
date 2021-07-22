@@ -53,6 +53,7 @@ parser.add_argument('--no_merge',action='store_true',help='set to not merge outp
 parser.add_argument('--merge',action='store_true',help='perform a merge and exit for large sample applications\t[False]')
 args = parser.parse_args()
 
+trim_chr = False
 if args.test_libs: #library tester should load all imports here
     import fusion_utils as fu
     x1,x2 = [[0,100,0,[],0,0,{}]],[[51,151,0,[],0,0,{}]]
@@ -174,13 +175,13 @@ def collect_results(result):
 #[1] File Partitioning------------------------------------------------------------------  
 #read and convert to SVULTB                                     all SV caller VCF inputs
 #saving each partition to a seperate pickle file               || by sample << partition
-def partition_call_sets(sample,k,O,R,B,chroms,flt,flt_exclude,caller_exclude):
+def partition_call_sets(sample,k,O,R,B,chroms,flt,flt_exclude,caller_exclude,trim_chr):
     sname = sample[sample.rfind('/')+1:]                      #extract sample identifier
     print('reading sample %s'%sname)
     sname_partition_path = out_dir+'/svul/'+sname                            #build path
     S,V = su.vcf_glob_to_svultd(sample+'/*vcf',chroms,O,types=B.keys(),
                                 vcf_flt=flt,flt_exclude=flt_exclude,
-                                caller_exclude=caller_exclude)
+                                caller_exclude=caller_exclude,trim_chr=trim_chr)
     S = su.filter_call_sets2(S,R,exclude=flt_exclude)                    #filter svmasks
     Q = fusor.slice_samples([[sname,S]])                                         #legacy
     P = fusor.partition_sliced_samples(Q,B,exclude=caller_exclude)            #partition
@@ -364,7 +365,7 @@ if __name__ == '__main__':
     coordinate_offset_json = ref_path.rsplit('/')[-1].rsplit('.fa')[0]+'_coordinates.json'
     if not os.path.isfile(out_dir+'/meta/'+coordinate_offset_json):
         print('making a new coordinate offset json file')
-        ru.write_coordinate_offsets(ref_path,out_dir+'/meta/'+coordinate_offset_json)
+        ru.write_coordinate_offsets(ref_path,out_dir+'/meta/'+coordinate_offset_json,trim_chr)
     O = ru.get_coordinate_offsets(out_dir+'/meta/'+coordinate_offset_json) #must have a valid offset map
     R = []                                                                 #human callers work better with svmask
     if args.sv_mask is not None: #None if no mask desired
@@ -416,7 +417,7 @@ if __name__ == '__main__':
         p1 = mp.Pool(processes=cpus)
         for sample in samples:
             p1.apply_async(partition_call_sets,
-                           args=(sample,k,O,R,B,chroms,flt,[],exclude_callers),
+                           args=(sample,k,O,R,B,chroms,flt,[],exclude_callers,trim_chr),
                            callback=collect_results)
             time.sleep(0.25)
         p1.close()

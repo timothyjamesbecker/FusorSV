@@ -1069,10 +1069,10 @@ def write_tigra_ctg_map(M,tigra_tsv_path,t_id=38):
 #     return svult,vx
 
 def construct_svult(vcr,chroms,offset_map,s_id,vcf_flt=0,
-                    types=None,lower=int(1E0),upper=int(250E6)):
+                    types=None,lower=int(1E0),upper=int(250E6),trim_chr=False):
     sx,vc_i,vx,k,j = {},{},[],[],0 #filtered container, and j is the originating row
     for vc in vcr: #iterate on the variant call record
-        sv = structural_variant_unit.SVU(vc,offset_map)
+        sv = structural_variant_unit.SVU(vc,offset_map,trim_chr)
         if types is not None and sv.svtype in types:
             vx += [sv]
             if vx[-1].chrom in chroms and vx[-1].filter >= vcf_flt and \
@@ -1117,7 +1117,7 @@ def print_svult(C):
 #     return S,V
 
 def vcf_glob_to_svultd(path_glob,chroms,offset_map,vcf_flt=0,flt_exclude=[],caller_exclude=[],
-                       types=None,lower=int(1E1),upper=int(250E6)):
+                       types=None,lower=int(1E1),upper=int(250E6),trim_chr=False):
     vcfs,S,V = glob.glob(path_glob),{},{}
     for vcf in vcfs:
         s_id = id_trim(vcf)
@@ -1125,9 +1125,9 @@ def vcf_glob_to_svultd(path_glob,chroms,offset_map,vcf_flt=0,flt_exclude=[],call
             vcr = structural_variant_unit.VCF_Reader(vcf) #uses
             s_id = id_trim(vcf)
             if s_id in flt_exclude:
-                S[s_id],V[s_id] = construct_svult(vcr,chroms,offset_map,s_id,-1,types,lower,upper)
+                S[s_id],V[s_id] = construct_svult(vcr,chroms,offset_map,s_id,-1,types,lower,upper,trim_chr)
             else:
-                S[s_id],V[s_id] = construct_svult(vcr,chroms,offset_map,s_id,vcf_flt,types,lower,upper)
+                S[s_id],V[s_id] = construct_svult(vcr,chroms,offset_map,s_id,vcf_flt,types,lower,upper,trim_chr)
     return S,V
 
 #given a vcf with SVCP naming convention, trim to an int value
