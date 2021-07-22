@@ -113,7 +113,12 @@ def write_coordinate_offsets(fasta_path,json_path):
     l_i = list(np.argsort([L[k] for k in L]))[::-1] #sort by max length
     O,offset = {},0 #starts at zero
     for i in l_i:
-        O[L.keys()[i]] = offset
+        chrom = L.keys()[i]
+        chrom_tag = chrom.split('CHROM')[-1]
+        chrom_tag = chrom_tag.split('CHR')[-1]
+        chrom_tag = chrom_tag.split('chrom')[-1]
+        chrom_tag = chrom_tag.split('chr')[-1]
+        O[chrom_tag] = offset
         offset = offset+L[L.keys()[i]] #old + new + 1
     with open(json_path,'w') as f:
         json.dump(O,f)
