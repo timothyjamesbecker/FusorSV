@@ -51,9 +51,13 @@ parser.add_argument('-C', '--clean', action='store_true',help='keep all kfold ru
 parser.add_argument('-T', '--test_libs', action='store_true', help='test the installation libraries and print version\t[False]')
 parser.add_argument('--no_merge',action='store_true',help='set to not merge output for large sample applications\t[False]')
 parser.add_argument('--merge',action='store_true',help='perform a merge and exit for large sample applications\t[False]')
+parser.add_argument('--trim_chr',action='store_true',help='trim the chr prefix on sequences\t[False]')
 args = parser.parse_args()
 
-trim_chr = False
+if args.trim_chr is not None:
+    trim_chr = True
+else:
+    trim_chr = False
 if args.test_libs: #library tester should load all imports here
     import fusion_utils as fu
     x1,x2 = [[0,100,0,[],0,0,{}]],[[51,151,0,[],0,0,{}]]
