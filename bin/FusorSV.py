@@ -54,7 +54,7 @@ parser.add_argument('--merge',action='store_true',help='perform a merge and exit
 parser.add_argument('--trim_chr',action='store_true',help='trim the chr prefix on sequences\t[False]')
 args = parser.parse_args()
 
-if args.trim_chr is not None:
+if args.trim_chr:
     trim_chr = True
 else:
     trim_chr = False
